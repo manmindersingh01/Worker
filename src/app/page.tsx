@@ -15,7 +15,7 @@ async function page() {
   const session = await getUserSession();
   console.log(session);
 
-  if (session.user) {
+  if (session?.user) {
     redirect("/chatroom");
   }
   return (

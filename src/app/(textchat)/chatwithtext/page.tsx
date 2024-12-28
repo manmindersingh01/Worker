@@ -33,7 +33,7 @@ const PdfChat = () => {
       try {
         const response = await fetch("/api/auth/session");
         const data = await response.json();
-        console.log("data", data);
+        // console.log("data", data);
 
         if (data?.userId) {
           setUserId(data.userId);
