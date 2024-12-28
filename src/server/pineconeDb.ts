@@ -11,7 +11,6 @@ import { getEmbeddings } from "~/lib/emmebding";
 import md5 from "md5";
 import { Vector } from "@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch/db_data";
 import { removeNonAsciiChar } from "~/lib/utils";
-import { json } from "body-parser";
 
 let pinecone: Pinecone | null = null;
 //const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
