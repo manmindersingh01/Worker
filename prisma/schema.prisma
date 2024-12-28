@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+  // Further reading:
+  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  @@index([name])
+}
+
+// Necessary for Next auth
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  credits       Int           @default(150)
+  chatWithtext  ChatSession[]
+  chatWithPDFs  PDFChatSession[]
+}
+
+model ChatSession {
+   title String?
+  id String @id @default(cuid()) // Unique identifier for the chat session
+
+  userId    String? // Optionally associate a user (if authentication is used)
+  createdAt DateTime  @default(now()) // Timestamp when the chat session was created
+  updatedAt DateTime  @updatedAt // Automatically updates when the session changes
+  messages  Message[] // Relation to messages exchanged in the chat
+  User      User?     @relation(fields: [userId], references: [id])
+}
+model PDFChatSession {
+  id          String    @id @default(cuid()) // Unique identifier for the chat session ooh
+  title       String?
+  userId      String? // Optionally associate a user
+  createdAt   DateTime @default(now()) // Timestamp when the session was created
+  updatedAt   DateTime @updatedAt // Automatically updates when the session changes
+  pdfs        PDF[]    // Many-to-many relationship to multiple PDFs
+  messages    Message[] // Relation to messages exchanged in the chat
+  User        User?     @relation(fields: [userId], references: [id])
+}
+model PDF {
+  id          String       @id @default(cuid()) // Unique identifier for the PDF
+  name        String       // Original file name
+  url         String       // URL or file path for the uploaded PDF
+  uploadedAt  DateTime     @default(now()) // Timestamp when the PDF was uploaded
+  chatSessions PDFChatSession[] // Relation to multiple chat sessions using this PDF
+}
+model Message {
+  id            String      @id @default(cuid()) // Unique identifier for the message
+  chatSessionId String // Foreign key to associate with a chat session
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  pdfChatSessionId   String?   
+   pdfChatSession     PDFChatSession? @relation(fields: [pdfChatSessionId], references: [id], onDelete: Cascade)
+  sender        SenderRole 
+  content       String // The content of the message
+  createdAt     DateTime    @default(now()) // Timestamp when the message was sent
+}
+
+enum SenderRole {
+  user
+  model
+}
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
