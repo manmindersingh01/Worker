@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 const openai = new OpenAI({
-  apiKey: "",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function getEmbeddings(text: string) {
