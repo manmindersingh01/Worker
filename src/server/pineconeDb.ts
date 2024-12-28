@@ -42,8 +42,8 @@ export const loadFileIntoPinecone = async (url: string[]) => {
 
   //const file = fileName[0];
   const allPages = [];
-  for (let i = 0; i < fileName.length; i++) {
-    const loader = new PDFLoader(fileName[i]);
+  for (const file of fileName) {
+    const loader = new PDFLoader(file);
     const pages = (await loader.load()) as PDFPage[];
     allPages.push(...pages);
   }
@@ -57,7 +57,7 @@ export const loadFileIntoPinecone = async (url: string[]) => {
   const index = client.Index("chat-pdf");
   console.log("interting into pinecone database ");
   const nameSpace = removeNonAsciiChar(url[0]);
-  //@ts-ignore
+  // @ts-expect-error: Handle dynamic types for namespace
   await index.namespace(nameSpace).upsert(vectors);
   return docs;
 };
