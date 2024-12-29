@@ -6,21 +6,15 @@ import React from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadButton } from "~/lib/uploadthing";
 import axios from "axios";
-import { getUserSession } from "~/hooks/getUser";
-import { useAuthStore } from "~/lib/store";
+
+// import { getUserSession } from "~/hooks/getUser";
+// import { useAuthStore } from "~/lib/store";
+import { useRouter } from "next/navigation";
 const FileUploadDropZone = () => {
-  const { userId } = useAuthStore();
+  const router = useRouter();
   const { mutate } = useMutation({
-    mutationFn: async ({
-      url,
-      name,
-      userId,
-    }: {
-      url: string[];
-      name: string[];
-      userId: string;
-    }) => {
-      const res = await axios.post("/api/pdf-chat", {
+    mutationFn: async ({ url, name }: { url: string[]; name: string[] }) => {
+      const res = await axios.post("/api/upload", {
         url,
         name,
       });
@@ -65,7 +59,6 @@ const FileUploadDropZone = () => {
             {
               url: fileUrl,
               name: filesName,
-              userId: userId,
             },
             {
               onError: (error) => {
@@ -80,8 +73,10 @@ const FileUploadDropZone = () => {
                * @param {any} data - The response data from the server.
                */
               onSuccess: (data) => {
+                router.push(`/pdfchat/${data.id}`);
                 console.log("Mutation success:", data);
               },
+
               /******  1c7375a5-1a93-40d6-8126-0d33c57c9fbf  *******/
               // ...other options
             },

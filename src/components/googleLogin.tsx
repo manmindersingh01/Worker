@@ -6,6 +6,7 @@ export default function SignInWithGoogle() {
     <form
       action={async () => {
         "use server";
+
         await signIn("google");
       }}
     >

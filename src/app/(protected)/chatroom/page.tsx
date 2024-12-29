@@ -8,8 +8,8 @@ const ChatRoom = () => {
   return (
     <div className="flex w-full flex-col items-center justify-center">
       <Globe />
-      <div className="border-primary-foreground relative -top-40 z-50 flex gap-4 rounded-lg p-2 text-white">
-        <RainbowButton onClick={() => redirect("/chatwithpdf")}>
+      <div className="relative -top-40 z-50 flex gap-4 rounded-lg border-primary-foreground p-2 text-white">
+        <RainbowButton onClick={() => redirect("/uploadFile")}>
           Chat with pdf
         </RainbowButton>
         <RainbowButton onClick={() => redirect("/chatwithtext")}>

@@ -9,51 +9,33 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "../../components/ui/sidebar";
+} from "../../../../components/ui/sidebar";
+import { db } from "~/server/db";
+import { auth } from "~/server/auth";
 
 // Menu items.
-const items = [
-  {
-    title: "Home",
-    url: "#",
-    icon: Home,
-  },
-  {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
-];
 
 export async function AppSidebar() {
+  const session = await auth();
+  const items = await db.pDFChatSession.findMany({
+    where: {
+      userId: session.user.id,
+    },
+  });
+  // console.log(res, "res-------------------");
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Pdfchats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                    <a href={`/pdfchat/${item.id}`}>
+                      <span>{item.title.split(" ")[0]}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

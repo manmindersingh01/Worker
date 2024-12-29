@@ -1,40 +1,26 @@
 import { NextResponse } from "next/server";
+import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { loadFileIntoPinecone } from "~/server/pineconeDb";
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { url, name, userId } = body;
+  const { url, name } = body;
+  const data = await auth();
+  const userId = data.user.id;
+
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
 
   const pages = await loadFileIntoPinecone(url);
-  console.log(
-    "-----LIST-----",
-    pages,
-    "loadFileIntoPinecone--------------------------------",
-  );
+  console.log(pages, "loadFileIntoPinecone--------------------------------");
 
   console.log("_______------------", url, name, userId);
 
-  // const pdfData = url.map((pdfUrl: string, index: number) => ({
-  //   url: pdfUrl,
-  //   name: name[index],
-  // }));
-
-  // const result = await db.pDFChatSession.create({
-  //   data: {
-  //     title: "new session",
-  //     userId,
-  //     pdfs: {
-  //       createMany: {
-  //         name: name,
-  //         url: url,
-  //       },
-  //     },
-  //   },
-  // });
   const session = await db.pDFChatSession.create({
     data: {
-      title: "new session",
+      title: name[0],
       userId,
     },
   });
@@ -49,8 +35,14 @@ export async function POST(req: Request) {
         },
       },
     });
-    return new Response("ok", { status: 200 });
+    return new Response(
+      JSON.stringify({
+        id: session.id,
+      }),
+      { status: 200 },
+    );
   }
+
   try {
   } catch (error) {
     return NextResponse.json(error);

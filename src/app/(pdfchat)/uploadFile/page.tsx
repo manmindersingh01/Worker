@@ -29,6 +29,7 @@ const PdfChat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  //console.log("-----------key---------", process.env.OPENAI_API_KEY);
 
   useEffect(() => {
     const fetchUserSession = async (): Promise<void> => {
@@ -204,7 +205,7 @@ const PdfChat = () => {
           </div>
         </ScrollArea>
 
-        <div className="mb-10 mt-4 rounded-lg p-2">
+        {/* <div className="mb-10 mt-4 rounded-lg p-2">
           <form
             onSubmit={handleSubmit}
             className="flex items-center justify-center gap-2"
@@ -227,7 +228,7 @@ const PdfChat = () => {
               )}
             </Button>
           </form>
-        </div>
+        </div> */}
       </div>
     </div>
   );

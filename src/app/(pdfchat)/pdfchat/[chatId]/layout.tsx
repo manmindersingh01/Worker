@@ -2,11 +2,11 @@ import React from "react";
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar";
 import { AppSidebar } from "./appsidebar";
 
-const layout = ({ children }: { children: React.ReactNode }) => {
+const layout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <SidebarProvider>
-      {/* <AppSidebar /> */}
-      <main className="m-2 w-full">
+      <AppSidebar />
+      <main className="w-full">
         <SidebarTrigger />
         {children}
       </main>
