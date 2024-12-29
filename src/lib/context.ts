@@ -37,7 +37,7 @@ export async function getContext(query: string, fileKey: string) {
   console.log("-------------------docs that quilify criteria:", qualifyingDocs);
 
   type Metadat = { text: string };
-  let docs = [];
+  const docs = [];
 
   qualifyingDocs.map((match) => docs.push(match.metadata.text));
   const result = docs.join("\n").substring(0, 3000);

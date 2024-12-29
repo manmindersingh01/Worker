@@ -4,7 +4,6 @@ import PdfChatBox from "~/components/pdfChatBox";
 import PdfView from "~/components/pdfview";
 import { db } from "~/server/db";
 
-type Props = {};
 type Params = Promise<{ chatId: string }>;
 const ChatPage = async ({ params }: { params: Params }) => {
   const { chatId } = await params;
