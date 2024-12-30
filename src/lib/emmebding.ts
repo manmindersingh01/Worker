@@ -3,7 +3,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-//console.log("-----------key---------ii", process.env.OPENAI_API_KEY);
+console.log("-----------key---------ii", process.env.OPENAI_API_KEY);
 
 export async function getEmbeddings(text: string) {
   try {

@@ -3,19 +3,20 @@ import React, { useEffect } from "react";
 import { useChat } from "ai/react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { SendIcon } from "lucide-react";
+import { Loader2, LoaderPinwheelIcon, SendIcon } from "lucide-react";
 import Messagelist from "./Messagelist";
 type Props = {
   chatId: string;
 };
 
 const PdfChatBox = ({ chatId }: Props) => {
-  const { input, handleInputChange, handleSubmit, messages } = useChat({
-    api: "/api/pdfchat",
-    body: {
-      chatId,
-    },
-  });
+  const { input, handleInputChange, handleSubmit, messages, isLoading } =
+    useChat({
+      api: "/api/pdfchat",
+      body: {
+        chatId,
+      },
+    });
   useEffect(() => {
     const messageConatiner = document.getElementById("message-conatiner");
     messageConatiner?.scrollTo({
@@ -33,6 +34,11 @@ const PdfChatBox = ({ chatId }: Props) => {
       </div>
 
       <Messagelist message={messages} />
+      {isLoading && (
+        <div className="flex items-center justify-center p-4">
+          <Loader2 className="animate-spin" />
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         className="sticky inset-x-0 bottom-0 flex gap-2 p-2"

@@ -1,19 +1,21 @@
 "use client";
 import { useMutation } from "@tanstack/react-query";
 import { File, FileIcon, FileImageIcon } from "lucide-react";
-
+import toast, { Toaster } from "react-hot-toast";
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadButton } from "~/lib/uploadthing";
 import axios from "axios";
 
-// import { getUserSession } from "~/hooks/getUser";
-// import { useAuthStore } from "~/lib/store";
 import { useRouter } from "next/navigation";
-const FileUploadDropZone = () => {
+const FileUploadDropZone = ({ setLoading }) => {
   const router = useRouter();
   const { mutate } = useMutation({
     mutationFn: async ({ url, name }: { url: string[]; name: string[] }) => {
+      toast(
+        "Uploading files... , this can take time depending on the file size",
+      );
+      setLoading(true);
       const res = await axios.post("/api/upload", {
         url,
         name,
@@ -34,19 +36,6 @@ const FileUploadDropZone = () => {
 
   return (
     <div className="flex cursor-pointer items-center justify-center rounded-xl border border-primary bg-blue-400 p-4">
-      {/* <div
-        className="flex h-32 flex-col items-center justify-center gap-2"
-        {...getRootProps()}
-      >
-        <input
-          {...getInputProps()}
-          className="flex h-24 items-center justify-center rounded-xl font-mono"
-        />
-        <FileIcon size={26} />
-        <p className="text-xs">
-          Drag 'n' drop some files here, or click to select files
-        </p>
-      </div> */}
       <UploadButton
         endpoint="imageUploader"
         onClientUploadComplete={(res) => {
@@ -62,7 +51,7 @@ const FileUploadDropZone = () => {
             },
             {
               onError: (error) => {
-                console.error("Error during mutation:", error);
+                console.error("Error during mutation okkk:", error.message);
               },
               onSettled: () => {
                 console.log("Mutation finished");
@@ -73,6 +62,8 @@ const FileUploadDropZone = () => {
                * @param {any} data - The response data from the server.
                */
               onSuccess: (data) => {
+                toast.success("Files uploaded successfully!");
+                setLoading(false);
                 router.push(`/pdfchat/${data.id}`);
                 console.log("Mutation success:", data);
               },
@@ -81,16 +72,13 @@ const FileUploadDropZone = () => {
               // ...other options
             },
           );
-
-          // Do something with the response
-          console.log("Files: ", res);
-          alert("Upload Completed");
         }}
         onUploadError={(error: Error) => {
           // Do something with the error.
-          alert(`ERROR! ${error.message}`);
+          alert(`ERROR while uploading! ${error.message}`);
         }}
       />
+      <Toaster />
     </div>
   );
 };

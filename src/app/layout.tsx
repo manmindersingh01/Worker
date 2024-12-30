@@ -6,6 +6,7 @@ import QueryProvider from "~/lib/queryProvider";
 import { useAuthStore } from "~/lib/store";
 import { redirect } from "next/navigation";
 import { getUserSession } from "~/hooks/getUser";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Cheater",
