@@ -8,7 +8,6 @@ import Messagelist from "./Messagelist";
 type Props = {
   chatId: string;
 };
-
 const PdfChatBox = ({ chatId }: Props) => {
   const { input, handleInputChange, handleSubmit, messages, isLoading } =
     useChat({
@@ -17,6 +16,8 @@ const PdfChatBox = ({ chatId }: Props) => {
         chatId,
       },
     });
+  console.log("messages", messages);
+
   useEffect(() => {
     const messageConatiner = document.getElementById("message-conatiner");
     messageConatiner?.scrollTo({

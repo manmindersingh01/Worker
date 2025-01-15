@@ -24,9 +24,17 @@ export async function POST(req: Request) {
       userId,
     },
   });
+  console.log("---------length--------", url.length);
 
   for (let i = 0; i < url.length; i++) {
-    await db.pDF.create({
+    console.log(
+      "_______------------nameeeeeeee______",
+      url[i],
+      name[i],
+      userId,
+    );
+
+    const res = await db.pDF.create({
       data: {
         url: url[i],
         name: name[i],
@@ -35,15 +43,16 @@ export async function POST(req: Request) {
         },
       },
     });
+    console.log("---------res--------", res.url);
+  }
+
+  try {
     return new Response(
       JSON.stringify({
         id: session.id,
       }),
       { status: 200 },
     );
-  }
-
-  try {
   } catch (error) {
     return NextResponse.json(error);
   }

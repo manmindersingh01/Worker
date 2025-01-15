@@ -16,6 +16,8 @@ const FileUploadDropZone = ({ setLoading }) => {
         "Uploading files... , this can take time depending on the file size",
       );
       setLoading(true);
+      console.log("url", url, "name", name);
+
       const res = await axios.post("/api/upload", {
         url,
         name,
@@ -65,7 +67,7 @@ const FileUploadDropZone = ({ setLoading }) => {
                 toast.success("Files uploaded successfully!");
                 setLoading(false);
                 router.push(`/pdfchat/${data.id}`);
-                console.log("Mutation success:", data);
+                console.log("Mutation success data of pdfs:", data);
               },
 
               /******  1c7375a5-1a93-40d6-8126-0d33c57c9fbf  *******/

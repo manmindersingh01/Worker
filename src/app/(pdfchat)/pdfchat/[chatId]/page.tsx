@@ -18,12 +18,15 @@ const ChatPage = async ({ params }: { params: Params }) => {
   });
   console.log(currentPdf, "currentPdf-------------------");
   //console.log("gemini", process.env.GEMINI_API_KEY);
-  console.log("openai--", process.env.OPENAI_API_KEY);
+  //console.log("openai--", process.env.OPENAI_API_KEY);
 
   const pdfUrlArray = [];
+
   currentPdf?.pdfs.map((pdf) => {
     pdfUrlArray.push(pdf.url);
   });
+
+  console.log("pdfUrlArray", pdfUrlArray);
   return (
     <div className="flex h-screen overflow-scroll">
       <div className="flex max-h-screen w-full overflow-scroll">
