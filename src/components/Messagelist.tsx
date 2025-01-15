@@ -5,7 +5,11 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Message } from "ai";
 import { cn } from "~/lib/utils";
 import { Bot, UserIcon } from "lucide-react";
-
+interface CodeProps {
+  inline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}
 const MessageList = ({ message }: { message: Message[] }) => {
   if (!message.length) {
     return (
@@ -58,7 +62,12 @@ const MessageList = ({ message }: { message: Message[] }) => {
                       {children}
                     </blockquote>
                   ),
-                  code: ({ node, inline, className, children, ...props }) => {
+                  code: ({
+                    inline,
+                    className,
+                    children,
+                    ...props
+                  }: CodeProps) => {
                     const match = /language-(\w+)/.exec(className || "");
                     return !inline && match ? (
                       <SyntaxHighlighter
