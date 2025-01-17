@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   console.log("_______------------", url, name, userId);
 
-  const session = await db.pDFChatSession.create({
+  const session = await db.pdfChatSession.create({
     data: {
       title: name[0],
       userId,

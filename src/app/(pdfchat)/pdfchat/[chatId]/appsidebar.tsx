@@ -17,7 +17,7 @@ import { auth } from "~/server/auth";
 
 export async function AppSidebar() {
   const session = await auth();
-  const items = await db.pDFChatSession.findMany({
+  const items = await db.pdfChatSession.findMany({
     where: {
       userId: session.user.id,
     },

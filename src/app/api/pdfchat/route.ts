@@ -1,6 +1,9 @@
 import { openai } from "@ai-sdk/openai";
 import { Message, streamText, convertToCoreMessages } from "ai";
 import { getContext } from "~/lib/context";
+import { checkAndUpdateCredits } from "~/lib/credit-check";
+//import { checkAndUpdateCredits } from "~/lib/credit-check";
+import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
 //console.log("api key", process.env.OPENAI_API_KEY);
@@ -8,8 +11,9 @@ import { db } from "~/server/db";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  const session = await auth();
   const { messages, chatId } = await req.json();
-  const res = await db.pDFChatSession.findUnique({
+  const res = await db.pdfChatSession.findUnique({
     where: {
       id: chatId,
     },
@@ -21,6 +25,25 @@ export async function POST(req: Request) {
     throw new Error("Chat session not found");
   }
 
+  // Check credits before processing
+  try {
+    await checkAndUpdateCredits(
+      session.user.id,
+      messages[messages.length - 1].content.length,
+    );
+  } catch (error) {
+    if (error.message === "INSUFFICIENT_CREDITS") {
+      return new Response(
+        JSON.stringify({
+          error: "INSUFFICIENT_CREDITS",
+          message:
+            "You've reached your free plan limit. Upgrade to Pro for unlimited access!",
+        }),
+        { status: 402 },
+      );
+    }
+    throw error;
+  }
   const fileKey = res.pdfs[0].url;
   const lastMessage = messages[messages.length - 1];
   console.log("messege send for getting embedded as query", lastMessage);

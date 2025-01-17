@@ -8,7 +8,7 @@ type Params = Promise<{ chatId: string }>;
 const ChatPage = async ({ params }: { params: Params }) => {
   const { chatId } = await params;
   if (!chatId) return redirect("/");
-  const currentPdf = await db.pDFChatSession.findUnique({
+  const currentPdf = await db.pdfChatSession.findUnique({
     where: {
       id: chatId,
     },
