@@ -5,6 +5,9 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2, LoaderPinwheelIcon, SendIcon } from "lucide-react";
 import Messagelist from "./Messagelist";
+import axios from "axios";
+
+import toast, { Toaster } from "react-hot-toast";
 type Props = {
   chatId: string;
 };
@@ -15,8 +18,32 @@ const PdfChatBox = ({ chatId }: Props) => {
       body: {
         chatId,
       },
+      onError: (error) => {
+        console.error(error);
+        if (
+          error.message.includes(
+            "You don't have enough credits to perform this action",
+          )
+        ) {
+          console.log("toast is comming");
+          // alert("Insufficient Credits");
+          toast("Insufficient Credits", {
+            style: {
+              border: "1px solid red",
+            },
+          });
+        } else {
+          toast("Serever error!");
+        }
+      },
     });
+
   console.log("messages", messages);
+  // useEffect(() => {
+  //   axios.get(`/api/getcredits`);
+
+  //   console.log("Iput");
+  // }, [handleSubmit]);
 
   useEffect(() => {
     const messageConatiner = document.getElementById("message-conatiner");
@@ -53,6 +80,7 @@ const PdfChatBox = ({ chatId }: Props) => {
           <SendIcon />
         </Button>
       </form>
+      <Toaster />
     </div>
   );
 };
