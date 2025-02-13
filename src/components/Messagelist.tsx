@@ -14,7 +14,7 @@ const MessageList = ({ message }: { message: Message[] }) => {
   if (!message.length) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
-        <div className="h-8 w-8 animate-spin text-zinc-400">...</div>
+        <div className="h-8 w-fit text-zinc-400">no chats yet...</div>
       </div>
     );
   }
@@ -48,12 +48,12 @@ const MessageList = ({ message }: { message: Message[] }) => {
               <ReactMarkdown
                 components={{
                   h1: ({ children }) => (
-                    <h1 className="mb-4 text-2xl font-bold text-blue-600">
+                    <h1 className="mb-4 text-sm font-bold text-blue-600">
                       {children}
                     </h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="mb-3 text-xl font-semibold text-blue-500">
+                    <h2 className="mb-3 text-sm font-semibold text-blue-500">
                       {children}
                     </h2>
                   ),
