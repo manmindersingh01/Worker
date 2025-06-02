@@ -36,7 +36,7 @@ export async function downloadAndSavePDFs(urls: string[]): Promise<string[]> {
   };
 
   const downloadPromises = urls.map((url) => downloadPDF(url));
-
+  console.log("downloadPromises", downloadPromises);
   try {
     const filePaths = await Promise.all(downloadPromises);
     return filePaths;

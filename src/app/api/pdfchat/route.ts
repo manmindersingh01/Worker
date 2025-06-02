@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 
 PDF Content:
 """
-{INSERT_PDF_TEXT_HERE}
+${context}
 """
 
 When the user asks a question, analyze the content of the PDF and respond in a clear, concise, and informative manner. Provide relevant summaries, explanations, or answers based on the document. If the question is unclear, ask for clarification. If a specific section or page of the PDF is relevant, refer to it explicitly.
@@ -92,6 +92,7 @@ Start by greeting the user and letting them know you are ready to assist with th
 `, // Your existing prompt
     };
 
+    console.log("prompt", prompt);
     const result = streamText({
       model: openai("gpt-3.5-turbo"),
       messages: [

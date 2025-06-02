@@ -70,8 +70,7 @@ const FileUploadDropZone = ({ setLoading }) => {
                 console.log("Mutation success data of pdfs:", data);
               },
 
-              /******  1c7375a5-1a93-40d6-8126-0d33c57c9fbf  *******/
-              // ...other options
+            
             },
           );
         }}
