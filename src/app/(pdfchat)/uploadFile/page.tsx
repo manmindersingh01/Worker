@@ -12,14 +12,15 @@ const PdfChat = () => {
 
   return (
     <div className="bg-paper relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmosphere: a warm saffron bloom anchored top-right */}
+      {/* Atmosphere: layered violet/cyan blooms */}
+      <div className="aurora pointer-events-none absolute inset-0 opacity-50" />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-accent/10 blur-3xl"
+        className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[hsl(var(--grad-from)/0.12)] blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-48 -left-32 h-[30rem] w-[30rem] rounded-full bg-success/8 blur-3xl"
+        className="pointer-events-none absolute -bottom-48 -left-32 h-[30rem] w-[30rem] rounded-full bg-[hsl(var(--grad-to)/0.1)] blur-3xl"
       />
 
       <motion.div
@@ -29,12 +30,12 @@ const PdfChat = () => {
         className="relative z-10 w-full max-w-xl"
       >
         <div className="mb-7 text-center">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground backdrop-blur">
-            <Sparkles className="h-3 w-3 text-accent" aria-hidden />
+          <span className="border-gradient relative mb-4 inline-flex items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground backdrop-blur">
+            <Sparkles className="h-3 w-3 text-[hsl(var(--accent))]" aria-hidden />
             Document intelligence
           </span>
-          <h1 className="font-display text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">
-            Bring your <span className="text-accent">documents</span> into the
+          <h1 className="font-display text-balance text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+            Bring your <span className="text-gradient">documents</span> into the
             conversation
           </h1>
           <p className="mx-auto mt-3 max-w-md text-balance text-sm text-muted-foreground sm:text-base">

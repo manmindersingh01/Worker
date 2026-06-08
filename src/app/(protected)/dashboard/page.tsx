@@ -1,7 +1,8 @@
-import React from "react";
+import { redirect } from "next/navigation";
 
-const page = () => {
-  return <div>page</div>;
+// No standalone dashboard yet — send users to the workspace.
+const Page = () => {
+  redirect("/chatroom");
 };
 
-export default page;
+export default Page;

@@ -71,7 +71,7 @@ const PdfView = ({ pdfUrl }: { pdfUrl: string[] }) => {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-[hsl(var(--accent))] hover:underline"
                   >
                     Open PDF directly
                   </a>
