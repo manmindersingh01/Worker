@@ -57,7 +57,7 @@ const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
     return pdfUrls.map((url, i) => ({
       id: `pdf-${i}`,
       name: `Document ${i + 1}`,
-      url,
+      viewUrl: url,
     }));
   }, [documents, pdfUrls]);
 

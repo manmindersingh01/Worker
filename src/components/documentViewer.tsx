@@ -22,7 +22,8 @@ import { useDocumentViewer } from "~/components/documentViewerContext";
 export type ViewerDoc = {
   id: string;
   name: string;
-  url: string;
+  // A presigned, short-lived GET url for the PDF (not the S3 key).
+  viewUrl: string;
   status?: "PROCESSING" | "READY" | "FAILED";
 };
 
@@ -172,7 +173,7 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <a
-                  href={active.url}
+                  href={active.viewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -205,7 +206,7 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
                   </p>
                   {active && (
                     <a
-                      href={active.url}
+                      href={active.viewUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-2 inline-flex items-center gap-1 font-medium text-accent underline-offset-2 hover:underline"
@@ -232,7 +233,7 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
                 <iframe
                   // Re-mount per document so onLoad fires on switch.
                   key={active.id}
-                  src={gviewSrc(active.url)}
+                  src={gviewSrc(active.viewUrl)}
                   className={cn(
                     "h-full w-full border-0 transition-opacity",
                     loading ? "opacity-0" : "opacity-100",
