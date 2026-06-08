@@ -70,14 +70,15 @@ model ChatSession {
 }
 
 model PdfChatSession {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   title     String?
   userId    String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   messages  Message[]
-  User      User?     @relation(fields: [userId], references: [id])
-  pdfs      PDF[]     @relation("PDFToPdfChatSession")
+  User      User?      @relation(fields: [userId], references: [id])
+  pdfs      PDF[]      @relation("PDFToPdfChatSession")
+  documents Document[]
 }
 
 model PDF {
@@ -110,4 +111,42 @@ model VerificationToken {
 enum SenderRole {
   user
   model
+}
+
+enum DocumentStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  pdfChatSessionId String
+  userId           String
+  name             String
+  url              String
+  status           DocumentStatus @default(PROCESSING)
+  pageCount        Int?
+  error            String?
+  createdAt        DateTime       @default(now())
+  processedAt      DateTime?
+  session          PdfChatSession @relation(fields: [pdfChatSessionId], references: [id], onDelete: Cascade)
+  chunks           Chunk[]
+
+  @@index([pdfChatSessionId])
+  @@index([userId])
+}
+
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  page       Int
+  section    String?
+  chunkIndex Int
+  content    String
+  contextual String?
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
