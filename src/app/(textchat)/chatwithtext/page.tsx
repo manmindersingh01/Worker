@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { SendIcon, LoaderIcon } from "lucide-react";
+import { SendIcon, LoaderIcon, MessageSquareText } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useAuthStore } from "~/lib/store";
 import Markdown from "react-markdown";
@@ -111,9 +111,23 @@ const PdfChat = () => {
   };
 
   return (
-    <div className="mx-w-screen flex h-screen items-center justify-center bg-background p-4">
-      <div className="flex h-full w-full max-w-4xl flex-col text-wrap">
-        <ScrollArea className="flex-1 p-4">
+    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-background p-4">
+      <div className="aurora pointer-events-none absolute inset-0 opacity-30" />
+      <div className="relative z-10 flex h-full w-full max-w-3xl flex-col">
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-border bg-card/60 px-4 py-3 backdrop-blur-sm">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_20px_-6px_hsl(var(--grad-from)/0.8)]">
+            <MessageSquareText className="h-4 w-4" aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold leading-tight">
+              Chat with text
+            </h2>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              Ask anything — grounded, streamed answers
+            </p>
+          </div>
+        </div>
+        <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border bg-card/30 p-4 backdrop-blur-sm">
           <div className="space-y-4">
             {messages.length > 0 ? (
               messages.map((message, index) => (
@@ -124,10 +138,10 @@ const PdfChat = () => {
                   }`}
                 >
                   <div
-                    className={`w-auto max-w-[85%] overflow-x-auto rounded-lg p-3 ${
+                    className={`w-auto max-w-[85%] overflow-x-auto p-3 text-sm leading-relaxed ${
                       message.role === "user"
-                        ? "bg-primary text-white"
-                        : "bg-secondary"
+                        ? "rounded-2xl rounded-br-sm bg-gradient-to-br from-[hsl(var(--grad-from))] to-[hsl(var(--grad-via))] text-background"
+                        : "rounded-2xl rounded-bl-sm border border-border bg-card text-foreground"
                     }`}
                   >
                     <Markdown
@@ -163,7 +177,7 @@ const PdfChat = () => {
                           );
                         },
                         h1: ({ children }) => (
-                          <h1 className="mb-4 text-2xl font-bold text-blue-700">
+                          <h1 className="mb-4 text-2xl font-bold text-foreground">
                             {children}
                           </h1>
                         ),
@@ -190,28 +204,39 @@ const PdfChat = () => {
                 </div>
               ))
             ) : (
-              <div className="flex h-full w-full items-center justify-center p-10">
-                <p>Hi, I&#39;m a bot. How can I assist you today?</p>
+              <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-4 p-10 text-center">
+                <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[hsl(var(--accent)/0.4)] bg-card text-[hsl(var(--accent))]">
+                  <MessageSquareText className="h-6 w-6" aria-hidden />
+                </span>
+                <div>
+                  <h3 className="text-lg font-semibold">Start a conversation</h3>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Ask a question or paste some text below — answers stream in
+                    as they&#39;re generated.
+                  </p>
+                </div>
               </div>
             )}
             <div ref={scrollRef} />
           </div>
         </ScrollArea>
 
-        <div className="mb-10 rounded-lg p-2">
+        <div className="mt-3 rounded-xl border border-border bg-card/60 p-2 backdrop-blur-sm">
           <form
             onSubmit={handleSubmit}
-            className="flex items-center justify-center gap-2"
+            className="flex items-center gap-2"
           >
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message"
+              placeholder="Type your message…"
               disabled={isLoading}
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
             <Button
               type="submit"
-              className="hover:bg-black"
+              size="icon"
+              className="shrink-0 bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_20px_-6px_hsl(var(--grad-from)/0.8)] hover:opacity-95 hover:bg-gradient-to-r disabled:opacity-50"
               disabled={isLoading}
             >
               {isLoading ? (
