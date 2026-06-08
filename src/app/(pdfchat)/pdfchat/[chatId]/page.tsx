@@ -13,6 +13,10 @@ const ChatPage = async ({ params }: { params: Params }) => {
     },
     include: {
       pdfs: true,
+      documents: {
+        select: { id: true, name: true, url: true, status: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -21,7 +25,20 @@ const ChatPage = async ({ params }: { params: Params }) => {
     pdfUrlArray.push(pdf.url);
   });
 
-  return <ChatWorkspace chatId={chatId} pdfUrls={pdfUrlArray} />;
+  const documents = (currentPdf?.documents ?? []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    url: d.url,
+    status: d.status,
+  }));
+
+  return (
+    <ChatWorkspace
+      chatId={chatId}
+      pdfUrls={pdfUrlArray}
+      documents={documents}
+    />
+  );
 };
 
 export default ChatPage;

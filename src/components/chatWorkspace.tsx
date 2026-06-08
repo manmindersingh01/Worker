@@ -2,15 +2,17 @@
 
 import React from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import PdfView from "~/components/pdfview";
+import DocumentViewer, { type ViewerDoc } from "~/components/documentViewer";
 import PdfChatBox from "~/components/pdfChatBox";
 import DocumentManager from "~/components/documentManager";
+import { DocumentViewerProvider } from "~/components/documentViewerContext";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
 type Props = {
   chatId: string;
   pdfUrls: string[];
+  documents?: ViewerDoc[];
 };
 
 /* ---------------------------------------------------------------------------
@@ -18,16 +20,28 @@ type Props = {
    PDF viewer + a collapsible DocumentManager + the chat box. The scope
    (selected documentIds) flows from the manager into <PdfChatBox />.
    ------------------------------------------------------------------------- */
-const ChatWorkspace = ({ chatId, pdfUrls }: Props) => {
+const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
   const [documentIds, setDocumentIds] = React.useState<string[]>([]);
   const [panelOpen, setPanelOpen] = React.useState(true);
 
+  // Prefer the real Document records (these carry the ids/names citations
+  // reference). Fall back to legacy `pdfUrls` for sessions that predate them.
+  const viewerDocs: ViewerDoc[] = React.useMemo(() => {
+    if (documents && documents.length > 0) return documents;
+    return pdfUrls.map((url, i) => ({
+      id: `pdf-${i}`,
+      name: `Document ${i + 1}`,
+      url,
+    }));
+  }, [documents, pdfUrls]);
+
   return (
-    <div className="bg-paper flex h-screen w-full overflow-hidden">
-      {/* PDF viewer */}
-      <div className="hidden min-w-0 flex-[3] overflow-auto p-4 lg:block">
-        <PdfView pdfUrl={pdfUrls} />
-      </div>
+    <DocumentViewerProvider>
+      <div className="bg-paper flex h-screen w-full overflow-hidden">
+        {/* PDF viewer */}
+        <div className="hidden min-w-0 flex-[3] overflow-hidden p-4 lg:block">
+          <DocumentViewer documents={viewerDocs} />
+        </div>
 
       {/* Right column: manager + chat */}
       <div className="flex min-w-0 flex-[3] overflow-hidden border-l border-border">
@@ -75,8 +89,9 @@ const ChatWorkspace = ({ chatId, pdfUrls }: Props) => {
             <PdfChatBox chatId={chatId} documentIds={documentIds} />
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </DocumentViewerProvider>
   );
 };
 
