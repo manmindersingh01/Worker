@@ -7,8 +7,7 @@ import {
   ScrollText,
   Sparkles,
 } from "lucide-react";
-import SignIn from "~/components/discordLogin";
-import SignInWithGoogle from "~/components/googleLogin";
+import LoginForm from "~/components/loginForm";
 
 import DotPattern from "~/components/ui/dot-pattern";
 import { getUserSession } from "~/hooks/getUser";
@@ -105,17 +104,16 @@ async function Page() {
           </p>
 
           <div
-            className="mt-9 flex animate-fade-up flex-col items-center gap-3 sm:flex-row"
+            className="mt-9 flex w-full animate-fade-up flex-col items-center"
             style={{ animationDelay: "180ms" }}
           >
-            <SignInWithGoogle />
-            <SignIn />
+            <LoginForm />
           </div>
           <p
             className="mt-4 animate-fade-in font-mono text-[11px] text-muted-foreground"
             style={{ animationDelay: "260ms" }}
           >
-            No setup — sign in and start reading.
+            Use the demo account or your email to start reading.
           </p>
 
           {/* Trust strip */}
