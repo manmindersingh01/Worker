@@ -153,7 +153,7 @@ const PdfChat = () => {
                             </SyntaxHighlighter>
                           ) : (
                             <code
-                              className="overflow-scroll text-wrap rounded-md bg-gray-100 px-2 py-1 text-sm text-gray-800"
+                              className="overflow-scroll text-wrap rounded-md bg-muted px-2 py-1 text-sm text-foreground"
                               {...props}
                             >
                               {typeof children === "string"

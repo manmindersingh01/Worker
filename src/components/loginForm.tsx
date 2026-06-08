@@ -44,9 +44,9 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-2xl border border-border bg-card/80 p-6 text-left shadow-paper-lg backdrop-blur-sm">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
-        Sign in to your archive
+    <div className="border-gradient w-full max-w-sm rounded-2xl bg-card/70 p-6 text-left shadow-[0_0_60px_-20px_hsl(var(--grad-from)/0.6)] backdrop-blur-xl">
+      <h2 className="text-xl font-bold tracking-tight text-foreground">
+        Sign in to Levia
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Use the demo account or your own email.
@@ -90,25 +90,27 @@ export default function LoginForm() {
           </p>
         )}
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_30px_-8px_hsl(var(--grad-from)/0.8)] hover:opacity-95 hover:bg-gradient-to-r"
+          disabled={loading}
+        >
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
 
-      <div className="mt-6 rounded-xl border border-accent/40 bg-accent-soft p-4">
-        <div className="flex items-center gap-2 text-accent-foreground">
-          <KeyRound className="h-4 w-4 text-accent" aria-hidden />
-          <span className="font-display text-sm font-semibold">
-            Demo account
-          </span>
+      <div className="mt-6 rounded-xl border border-[hsl(var(--accent)/0.4)] bg-[hsl(var(--accent-soft))] p-4">
+        <div className="flex items-center gap-2 text-foreground">
+          <KeyRound className="h-4 w-4 text-[hsl(var(--accent))]" aria-hidden />
+          <span className="text-sm font-semibold">Demo account</span>
         </div>
-        <dl className="mt-2 space-y-1 font-mono text-xs text-accent-foreground/90">
+        <dl className="mt-2 space-y-1 font-mono text-xs text-foreground/90">
           <div className="flex items-center justify-between gap-3">
-            <dt className="text-accent-foreground/70">email</dt>
+            <dt className="text-muted-foreground">email</dt>
             <dd>{DEMO_EMAIL}</dd>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <dt className="text-accent-foreground/70">password</dt>
+            <dt className="text-muted-foreground">password</dt>
             <dd>{DEMO_PASSWORD}</dd>
           </div>
         </dl>

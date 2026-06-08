@@ -20,78 +20,84 @@
 
 @layer base {
   :root {
-    /* Surfaces — warm parchment */
-    --background: 40 33% 97%;
-    --foreground: 28 18% 12%;
-    --card: 40 40% 99%;
-    --card-foreground: 28 18% 12%;
-    --popover: 40 40% 99%;
-    --popover-foreground: 28 18% 12%;
+    /* Surfaces — deep violet-black void */
+    --background: 258 40% 5%;
+    --foreground: 250 24% 96%;
+    --card: 258 32% 8%;
+    --card-foreground: 250 24% 96%;
+    --popover: 258 34% 7%;
+    --popover-foreground: 250 24% 96%;
 
-    /* Primary — warm ink */
-    --primary: 28 22% 14%;
-    --primary-foreground: 40 38% 97%;
+    /* Primary — luminous violet */
+    --primary: 268 88% 66%;
+    --primary-foreground: 255 40% 8%;
 
-    /* Secondary / muted — toned parchment */
-    --secondary: 38 24% 92%;
-    --secondary-foreground: 28 20% 18%;
-    --muted: 38 22% 91%;
-    --muted-foreground: 30 10% 42%;
+    /* Secondary / muted — dim violet ink */
+    --secondary: 258 24% 15%;
+    --secondary-foreground: 250 20% 92%;
+    --muted: 258 20% 13%;
+    --muted-foreground: 252 14% 66%;
 
-    /* Accent — saffron highlighter */
-    --accent: 38 92% 50%;
-    --accent-foreground: 30 40% 12%;
-    --accent-soft: 40 80% 94%;
+    /* Accent — neon violet (pairs with cyan in gradients) */
+    --accent: 270 92% 68%;
+    --accent-foreground: 255 40% 8%;
+    --accent-soft: 268 38% 16%;
+
+    /* Neon gradient endpoints — violet → magenta → cyan */
+    --grad-from: 268 90% 66%;
+    --grad-via: 300 85% 66%;
+    --grad-to: 190 95% 60%;
 
     /* Semantic */
-    --success: 152 52% 38%;
-    --success-foreground: 150 40% 97%;
-    --warning: 32 92% 48%;
-    --warning-foreground: 30 40% 12%;
-    --destructive: 5 74% 52%;
+    --success: 158 70% 48%;
+    --success-foreground: 160 40% 8%;
+    --warning: 38 95% 58%;
+    --warning-foreground: 30 40% 10%;
+    --destructive: 350 85% 60%;
     --destructive-foreground: 0 40% 98%;
 
     /* Lines & focus */
-    --border: 36 20% 86%;
-    --input: 36 20% 84%;
-    --ring: 38 92% 50%;
+    --border: 264 28% 18%;
+    --input: 264 26% 20%;
+    --ring: 270 92% 68%;
 
-    /* Charts (kept for any existing consumers) */
-    --chart-1: 38 92% 50%;
-    --chart-2: 152 52% 38%;
-    --chart-3: 28 22% 14%;
-    --chart-4: 200 60% 45%;
-    --chart-5: 5 74% 52%;
+    /* Charts */
+    --chart-1: 268 90% 66%;
+    --chart-2: 190 95% 60%;
+    --chart-3: 300 85% 66%;
+    --chart-4: 158 70% 48%;
+    --chart-5: 38 95% 58%;
 
     /* Radii */
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Warm shadows */
-    --shadow-color: 30 35% 20%;
-    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06);
-    --shadow-md: 0 4px 14px -4px hsl(var(--shadow-color) / 0.12),
-      0 2px 4px -2px hsl(var(--shadow-color) / 0.08);
-    --shadow-lg: 0 18px 40px -12px hsl(var(--shadow-color) / 0.22),
-      0 6px 14px -8px hsl(var(--shadow-color) / 0.12);
-    --shadow-xl: 0 40px 80px -24px hsl(var(--shadow-color) / 0.28),
-      0 16px 32px -16px hsl(var(--shadow-color) / 0.16);
+    /* Shadows + violet glows */
+    --shadow-color: 258 60% 2%;
+    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.5);
+    --shadow-md: 0 8px 24px -6px hsl(var(--shadow-color) / 0.6),
+      0 2px 6px -2px hsl(var(--shadow-color) / 0.5);
+    --shadow-lg: 0 24px 50px -12px hsl(var(--shadow-color) / 0.7),
+      0 8px 18px -8px hsl(var(--shadow-color) / 0.6);
+    --shadow-xl: 0 48px 90px -24px hsl(var(--shadow-color) / 0.8),
+      0 18px 40px -16px hsl(var(--shadow-color) / 0.65);
+    --glow: 0 0 40px -6px hsl(var(--accent) / 0.55);
 
     /* Sidebar */
-    --sidebar-background: 38 30% 95%;
-    --sidebar-foreground: 28 16% 24%;
-    --sidebar-primary: 28 22% 14%;
-    --sidebar-primary-foreground: 40 38% 97%;
-    --sidebar-accent: 38 24% 90%;
-    --sidebar-accent-foreground: 28 22% 16%;
-    --sidebar-border: 36 20% 85%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-background: 258 34% 7%;
+    --sidebar-foreground: 250 18% 82%;
+    --sidebar-primary: 268 88% 66%;
+    --sidebar-primary-foreground: 255 40% 8%;
+    --sidebar-accent: 258 22% 14%;
+    --sidebar-accent-foreground: 250 20% 90%;
+    --sidebar-border: 264 26% 16%;
+    --sidebar-ring: 270 92% 68%;
 
     /* Legacy rainbow tokens (used by rainbow-button / shimmer) */
-    --color-1: 38 92% 55%;
-    --color-2: 5 74% 55%;
-    --color-3: 28 22% 20%;
-    --color-4: 152 52% 42%;
-    --color-5: 200 60% 50%;
+    --color-1: 268 90% 66%;
+    --color-2: 300 85% 66%;
+    --color-3: 190 95% 60%;
+    --color-4: 158 70% 48%;
+    --color-5: 330 90% 64%;
   }
 
   .dark {
@@ -176,18 +182,26 @@
   h2,
   h3,
   .font-display {
-    font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+    font-family: var(--font-bricolage), var(--font-geist-sans), system-ui,
+      sans-serif;
     font-optical-sizing: auto;
+    letter-spacing: -0.02em;
   }
 
-  /* Paper grain — a faint warm texture for atmosphere */
+  /* Selection in brand violet */
+  ::selection {
+    background: hsl(var(--accent) / 0.35);
+    color: hsl(var(--foreground));
+  }
+
+  /* App surface texture — faint dotted grid over the violet-black void */
   .bg-paper {
     background-color: hsl(var(--background));
     background-image: radial-gradient(
-        hsl(var(--foreground) / 0.025) 0.5px,
+        hsl(var(--foreground) / 0.04) 0.5px,
         transparent 0.5px
       ),
-      radial-gradient(hsl(var(--foreground) / 0.02) 0.5px, transparent 0.5px);
+      radial-gradient(hsl(var(--foreground) / 0.03) 0.5px, transparent 0.5px);
     background-size: 22px 22px, 22px 22px;
     background-position: 0 0, 11px 11px;
   }
@@ -207,44 +221,145 @@
     text-wrap: balance;
   }
 
-  /* Saffron highlighter swept under a word — the product's core metaphor.
-     The band grows from 0 → full width on load (see .animate-marker). */
-  .marker {
+  /* Neon gradient text — violet → magenta → cyan */
+  .text-gradient {
     background-image: linear-gradient(
-      120deg,
-      hsl(var(--accent) / 0.32),
-      hsl(var(--accent) / 0.42)
+      100deg,
+      hsl(var(--grad-from)),
+      hsl(var(--grad-via)),
+      hsl(var(--grad-to))
     );
-    background-repeat: no-repeat;
-    background-position: 0 82%;
-    background-size: 100% 0.36em;
-    padding-inline: 0.04em;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+  }
+  .text-gradient-animate {
+    animation: gradient-pan 6s linear infinite;
   }
 
-  /* Ruled-margin lines — like the lines of a notebook page, very faint. */
-  .ruled {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 31px,
-      hsl(var(--foreground) / 0.05) 31px,
-      hsl(var(--foreground) / 0.05) 32px
-    );
+  .glow {
+    box-shadow: var(--glow);
   }
 
-  /* A warm key-light glow that sits behind the hero. */
-  .glow-saffron {
+  /* Faint perspective grid — the "tech surface" backdrop */
+  .grid-bg {
+    background-image: linear-gradient(
+        hsl(var(--foreground) / 0.045) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to right,
+        hsl(var(--foreground) / 0.045) 1px,
+        transparent 1px
+      );
+    background-size: 56px 56px;
+  }
+
+  /* Aurora wash — layered violet/cyan radial blooms behind the hero */
+  .aurora {
     background: radial-gradient(
-        60% 50% at 50% 0%,
-        hsl(var(--accent) / 0.18),
+        50% 45% at 78% 30%,
+        hsl(var(--grad-from) / 0.28),
         transparent 70%
       ),
       radial-gradient(
-        40% 40% at 85% 30%,
-        hsl(var(--accent) / 0.1),
+        40% 40% at 88% 55%,
+        hsl(var(--grad-to) / 0.2),
+        transparent 70%
+      ),
+      radial-gradient(
+        60% 50% at 12% 10%,
+        hsl(var(--grad-via) / 0.14),
         transparent 70%
       );
   }
+
+  /* Gradient hairline border via mask (for pills/cards) */
+  .border-gradient {
+    position: relative;
+  }
+  .border-gradient::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      120deg,
+      hsl(var(--grad-from)),
+      hsl(var(--grad-via)),
+      hsl(var(--grad-to))
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
+  }
+}
+
+/* ---- Neon motion ---- */
+@keyframes gradient-pan {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+
+@keyframes orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-orb-spin {
+  animation: orb-spin 18s linear infinite;
+}
+.animate-orb-spin-rev {
+  animation: orb-spin 26s linear infinite reverse;
+}
+
+@keyframes orb-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+.animate-orb-pulse {
+  animation: orb-pulse 5s ease-in-out infinite;
 }
 
 /* Highlighter draws itself in after the headline lands */
