@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
+import { BookOpenText } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 const items = [
@@ -35,7 +36,12 @@ const App_sidebar = () => {
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
-        <h1>Logo</h1>
+        <Link href="/" className="flex items-center gap-2 px-1 py-1.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_18px_-4px_hsl(var(--grad-from)/0.7)]">
+            <BookOpenText className="h-4 w-4" aria-hidden />
+          </span>
+          <span className="text-base font-bold tracking-tight">Levia</span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
