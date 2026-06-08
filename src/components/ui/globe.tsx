@@ -7,19 +7,19 @@ import { cn } from "~/lib/utils";
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
-  onRender: (state) => {
-    console.log("Render state:", state);
+  onRender: () => {
+    /* no-op — avoid per-frame logging */
   },
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.3,
-  dark: 0,
-  diffuse: 0.4,
+  dark: 1,
+  diffuse: 1.2,
   mapSamples: 16000,
-  mapBrightness: 1.2,
-  baseColor: [1, 1, 1],
-  markerColor: [251 / 255, 100 / 255, 21 / 255],
-  glowColor: [1, 1, 1],
+  mapBrightness: 6,
+  baseColor: [0.26, 0.2, 0.42],
+  markerColor: [0.62, 0.4, 1],
+  glowColor: [0.35, 0.22, 0.62],
   markers: [
     { location: [14.5995, 120.9842], size: 0.03 },
     { location: [19.076, 72.8777], size: 0.1 },
