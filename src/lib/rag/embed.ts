@@ -12,7 +12,10 @@ export interface OpenAILike {
 }
 
 const MODEL = "text-embedding-3-large";
-const DIMENSIONS = 1536;
+// Must match the Pinecone index dimension. The provisioned `chat-pdf-v2` index
+// is 1024-dim; text-embedding-3-large supports 1024 via Matryoshka with
+// negligible quality loss. If you recreate the index at 1536, change this to 1536.
+const DIMENSIONS = 1024;
 const BATCH_SIZE = 96;
 
 let defaultClient: OpenAILike | undefined;

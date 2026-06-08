@@ -16,7 +16,7 @@ describe("embedTexts", () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(create.mock.calls[0][0]).toMatchObject({
       model: "text-embedding-3-large",
-      dimensions: 1536,
+      dimensions: 1024,
       encoding_format: "float",
     });
     // batch sizes: 96 then 4
