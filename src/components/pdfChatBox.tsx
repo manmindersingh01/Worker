@@ -58,28 +58,35 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
   return (
     <div
       id="message-conatiner"
-      className="relative max-h-screen overflow-scroll"
+      className="relative h-full overflow-auto"
     >
-      <div className="sticky inset-x-0 top-0 z-50 h-fit bg-white p-2">
-        <h3 className="text-xl font-bold">Chat</h3>
+      <div className="sticky inset-x-0 top-0 z-50 flex items-center gap-2 border-b border-border bg-card/85 px-4 py-3 backdrop-blur-sm">
+        <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
+        <h3 className="font-display text-base font-semibold text-foreground">
+          Conversation
+        </h3>
       </div>
 
-      <Messagelist message={messages} />
+      <div className="px-1">
+        <Messagelist message={messages} />
+      </div>
       {isLoading && (
-        <div className="flex items-center justify-center p-4">
-          <Loader2 className="animate-spin" />
+        <div className="flex items-center justify-center gap-2 p-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-accent" />
+          Thinking…
         </div>
       )}
       <form
         onSubmit={handleSubmit}
-        className="sticky inset-x-0 bottom-0 flex gap-2 p-2"
+        className="sticky inset-x-0 bottom-0 flex gap-2 border-t border-border bg-card/85 p-3 backdrop-blur-sm"
       >
         <Input
-          placeholder="ask any question"
+          placeholder="Ask anything about your documents…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          className="bg-background"
         />
-        <Button>
+        <Button aria-label="Send message">
           <SendIcon />
         </Button>
       </form>
