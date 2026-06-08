@@ -1,7 +1,7 @@
 import type { Citation, RetrievedChunk } from "./types";
 
 export function parseCitations(text: string): Citation[] {
-  const re = /\[([^\]]+?)\s+p\.(\d+)\]/g;
+  const re = /\[([^\]]+?)\s+p\.\s*(\d+)\]/g;
   const out: Citation[] = [];
   for (const m of text.matchAll(re)) out.push({ docName: m[1].trim(), page: Number(m[2]) });
   return out;

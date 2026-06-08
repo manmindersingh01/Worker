@@ -21,4 +21,19 @@ describe("structureAwareChunk", () => {
     const chunks = structureAwareChunk(pages, { maxTokens: 400, overlapRatio: 0.15 });
     expect(chunks[0].section).toBe("Intro");
   });
+  it("does not emit a chunk that is only the carried overlap tail", () => {
+    const pages = [{ page: 1, markdown: "Alpha beta gamma. " + "word ".repeat(60) }];
+    const chunks = structureAwareChunk(pages, { maxTokens: 50, overlapRatio: 0.2 });
+    for (let i = 1; i < chunks.length; i++) {
+      expect(chunks[i].content).not.toBe(chunks[i - 1].content);
+      // no chunk may be a pure suffix (overlap tail) of its predecessor with no new content
+      expect(chunks[i - 1].content.trimEnd().endsWith(chunks[i].content.trim())).toBe(false);
+    }
+    const last = chunks[chunks.length - 1].content.trim();
+    expect(last.length).toBeGreaterThan(0);
+  });
+  it("produces exactly one chunk for short single-page content", () => {
+    const chunks = structureAwareChunk([{ page: 1, markdown: "Just a short sentence." }], { maxTokens: 400, overlapRatio: 0.15 });
+    expect(chunks.filter((c) => !c.isTable)).toHaveLength(1);
+  });
 });

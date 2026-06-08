@@ -17,26 +17,47 @@ export function structureAwareChunk(
       .map((b) => b.trim())
       .filter(Boolean);
     let buf: string[] = [];
+    let carry = "";
     const flush = () => {
       if (!buf.length) return;
-      const content = buf.join("\n\n");
+      const content = (carry ? carry + "\n\n" : "") + buf.join("\n\n");
       out.push({ page, section, chunkIndex: idx++, content, isTable: false });
-      const tail = content
-        .split(/\s+/)
-        .slice(-Math.max(1, overlapTokens))
-        .join(" ");
-      buf = overlapTokens > 0 ? [tail] : [];
+      carry =
+        overlapTokens > 0
+          ? content.split(/\s+/).slice(-Math.max(1, overlapTokens)).join(" ")
+          : "";
+      buf = [];
     };
     for (const block of blocks) {
       const heading = block.match(/^#{1,6}\s+(.*)$/m);
       if (heading) section = heading[1].trim();
       if (isTableBlock(block)) {
         flush();
+        carry = "";
         out.push({ page, section, chunkIndex: idx++, content: block, isTable: true });
         continue;
       }
+      // A single block larger than maxTokens is split into word windows so
+      // oversized prose is honoured instead of emitted as one giant chunk.
+      if (approxTokens(block) >= opts.maxTokens) {
+        flush();
+        const words = block.split(/\s+/);
+        let window: string[] = [];
+        for (const w of words) {
+          window.push(w);
+          const projected = (carry ? carry + "\n\n" : "") + window.join(" ");
+          if (approxTokens(projected) >= opts.maxTokens) {
+            buf = [window.join(" ")];
+            flush();
+            window = [];
+          }
+        }
+        if (window.length) buf = [window.join(" ")];
+        continue;
+      }
       buf.push(block);
-      if (approxTokens(buf.join("\n\n")) >= opts.maxTokens) flush();
+      const projected = (carry ? carry + "\n\n" : "") + buf.join("\n\n");
+      if (approxTokens(projected) >= opts.maxTokens) flush();
     }
     flush();
   }
