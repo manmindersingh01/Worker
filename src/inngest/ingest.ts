@@ -8,6 +8,7 @@ import {
 } from "~/lib/rag/contextualize";
 import { embedTexts } from "~/lib/rag/embed";
 import { namespaceFor, upsertChunks } from "~/lib/rag/pinecone";
+import { getObjectBuffer } from "~/lib/s3";
 import type { ParsedPage, RawChunk } from "~/lib/rag/types";
 
 type LoadedDoc = { id: string; url: string; name: string; userId: string };
@@ -60,8 +61,7 @@ export const ingestDocument = inngest.createFunction(
     const pages = (await step.run(
       "parse",
       async (): Promise<ParsedPage[]> => {
-        const res = await fetch(doc.url);
-        const buffer = Buffer.from(await res.arrayBuffer());
+        const buffer = await getObjectBuffer(doc.url);
         return parsePdf(buffer, { fileName: doc.name });
       },
     )) as ParsedPage[];
