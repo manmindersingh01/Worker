@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { deleteByDocument, namespaceFor } from "~/lib/rag/pinecone";
+import { deleteObject } from "~/lib/s3";
 
 export async function GET(req: NextRequest) {
   const data = await auth();
@@ -60,7 +61,18 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await deleteByDocument(namespaceFor(userId), documentId);
+  // Best-effort external cleanup before the DB delete. `document.url` holds the
+  // S3 object key. Failures here must not block removing the row.
+  try {
+    await deleteObject(document.url);
+  } catch (err) {
+    console.error("s3 delete failed", err);
+  }
+  try {
+    await deleteByDocument(namespaceFor(userId), documentId);
+  } catch (err) {
+    console.error("pinecone delete failed", err);
+  }
   await db.document.delete({ where: { id: documentId } });
 
   return NextResponse.json({ ok: true });
