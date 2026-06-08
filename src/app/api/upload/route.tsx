@@ -1,59 +1,48 @@
 import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
-import { loadFileIntoPinecone } from "~/server/pineconeDb";
+import { inngest } from "~/inngest/client";
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { url, name } = body;
-  const data = await auth();
-  const userId = data.user.id;
+  try {
+    const data = await auth();
+    const userId = data?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  if (!userId) {
-    throw new Error("User not authenticated");
-  }
+    const body = (await req.json()) as { url: string[]; name: string[] };
+    const { url, name } = body;
 
-  const pages = await loadFileIntoPinecone(url);
-  console.log(pages, "loadFileIntoPinecone--------------------------------");
-
-  console.log("_______------------", url, name, userId);
-
-  const session = await db.pdfChatSession.create({
-    data: {
-      title: name[0],
-      userId,
-    },
-  });
-  console.log("---------length--------", url.length);
-
-  for (let i = 0; i < url.length; i++) {
-    console.log(
-      "_______------------nameeeeeeee______",
-      url[i],
-      name[i],
-      userId,
-    );
-
-    const res = await db.pDF.create({
+    const session = await db.pdfChatSession.create({
       data: {
-        url: url[i],
-        name: name[i],
-        chatSessions: {
-          connect: { id: session.id }, // Associate with the created session
-        },
+        title: name[0],
+        userId,
       },
     });
-    console.log("---------res--------", res.url);
-  }
 
-  try {
-    return new Response(
-      JSON.stringify({
-        id: session.id,
-      }),
-      { status: 200 },
-    );
+    for (let i = 0; i < url.length; i++) {
+      const doc = await db.document.create({
+        data: {
+          pdfChatSessionId: session.id,
+          userId,
+          name: name[i]!,
+          url: url[i]!,
+          status: "PROCESSING",
+        },
+      });
+      await inngest.send({
+        name: "document/uploaded",
+        data: { documentId: doc.id },
+      });
+    }
+
+    return NextResponse.json({ id: session.id }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(error);
+    console.error("upload error", error);
+    return NextResponse.json(
+      { error: "Failed to process upload" },
+      { status: 500 },
+    );
   }
 }
