@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "note": "TEMPLATE golden set. The cases below use placeholder ids and are NOT real data. Replace them with ~30-50 representative Q/A pairs from your own PDFs. For each case, set `userId` to the owning user, `documentIds` to the doc(s) to scope to (or null for all of the user's docs), and `relevantChunkIds` to the Chunk.id values that SHOULD be retrieved (query the Chunk table). `idealAnswer` is for future faithfulness/answer-relevance scoring and is not used by the current retrieval-only harness. See eval/README.md.",
+  "cases": [
+    {
+      "id": "template-001",
+      "question": "What is the refund policy described in the document?",
+      "userId": "REPLACE_WITH_REAL_USER_ID",
+      "documentIds": ["REPLACE_WITH_REAL_DOCUMENT_ID"],
+      "relevantChunkIds": ["REPLACE_WITH_REAL_CHUNK_ID_1", "REPLACE_WITH_REAL_CHUNK_ID_2"],
+      "idealAnswer": "Refunds are issued within 30 days of purchase, minus a restocking fee."
+    },
+    {
+      "id": "template-002",
+      "question": "Who are the authors listed on the report?",
+      "userId": "REPLACE_WITH_REAL_USER_ID",
+      "documentIds": ["REPLACE_WITH_REAL_DOCUMENT_ID"],
+      "relevantChunkIds": ["REPLACE_WITH_REAL_CHUNK_ID_3"],
+      "idealAnswer": "The report was authored by Jane Doe and John Smith."
+    },
+    {
+      "id": "template-003",
+      "question": "What were the total revenues reported for fiscal year 2024?",
+      "userId": "REPLACE_WITH_REAL_USER_ID",
+      "documentIds": null,
+      "relevantChunkIds": ["REPLACE_WITH_REAL_CHUNK_ID_4", "REPLACE_WITH_REAL_CHUNK_ID_5"],
+      "idealAnswer": "Total revenues for fiscal year 2024 were $12.4 million."
+    },
+    {
+      "id": "template-004",
+      "question": "Summarize the safety precautions in section 3.",
+      "userId": "REPLACE_WITH_REAL_USER_ID",
+      "documentIds": ["REPLACE_WITH_REAL_DOCUMENT_ID"],
+      "relevantChunkIds": ["REPLACE_WITH_REAL_CHUNK_ID_6"],
+      "idealAnswer": "Section 3 requires wearing protective equipment and powering down before maintenance."
+    },
+    {
+      "id": "template-005",
+      "question": "What is the deadline for submitting the application?",
+      "userId": "REPLACE_WITH_REAL_USER_ID",
+      "documentIds": ["REPLACE_WITH_REAL_DOCUMENT_ID"],
+      "relevantChunkIds": ["REPLACE_WITH_REAL_CHUNK_ID_7"],
+      "idealAnswer": "Applications must be submitted by March 31st."
+    }
+  ]
+}
