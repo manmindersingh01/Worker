@@ -25,12 +25,22 @@ let s3Singleton: S3Client | undefined;
 export function getS3Client(): S3Client {
   if (!s3Singleton) {
     const env = loadEnv();
+    // Use explicit keys only if BOTH are provided; otherwise fall back to the
+    // default AWS credential provider chain (shared ~/.aws config + SSO profile
+    // via AWS_PROFILE, env vars, or an IAM role). This lets the app use the
+    // credentials the AWS CLI is already configured with.
+    const hasExplicitKeys =
+      !!env.AWS_ACCESS_KEY_ID && !!env.AWS_SECRET_ACCESS_KEY;
     s3Singleton = new S3Client({
-      region: env.AWS_REGION,
-      credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
-      },
+      region: env.AWS_REGION ?? "us-east-1",
+      ...(hasExplicitKeys
+        ? {
+            credentials: {
+              accessKeyId: env.AWS_ACCESS_KEY_ID!,
+              secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
+            },
+          }
+        : {}),
     });
   }
   return s3Singleton;
