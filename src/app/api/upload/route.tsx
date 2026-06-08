@@ -11,19 +11,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await req.json()) as { url: string[]; name: string[] };
-    const { url, name } = body;
+    const body = (await req.json()) as { keys: string[]; names: string[] };
+    const { keys, names } = body;
 
     if (
-      !Array.isArray(url) ||
-      !Array.isArray(name) ||
-      url.length === 0 ||
-      url.length !== name.length
+      !Array.isArray(keys) ||
+      !Array.isArray(names) ||
+      keys.length === 0 ||
+      keys.length !== names.length
     ) {
       return new Response(
         JSON.stringify({
           error: "INVALID_INPUT",
-          message: "url and name must be non-empty arrays of equal length",
+          message: "keys and names must be non-empty arrays of equal length",
         }),
         { status: 400 },
       );
@@ -31,18 +31,18 @@ export async function POST(req: Request) {
 
     const session = await db.pdfChatSession.create({
       data: {
-        title: name[0],
+        title: names[0],
         userId,
       },
     });
 
-    for (let i = 0; i < url.length; i++) {
+    for (let i = 0; i < keys.length; i++) {
       const doc = await db.document.create({
         data: {
           pdfChatSessionId: session.id,
           userId,
-          name: name[i]!,
-          url: url[i]!,
+          name: names[i]!,
+          url: keys[i]!,
           status: "PROCESSING",
         },
       });
