@@ -1,49 +1,43 @@
 "use client";
-import React, { useEffect } from "react";
-import { useChat } from "ai/react";
+import React, { useEffect, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Loader2, LoaderPinwheelIcon, SendIcon } from "lucide-react";
-import Messagelist from "./Messagelist";
-import axios from "axios";
-
+import { Loader2, SendIcon } from "lucide-react";
+import Messagelist, { type ChatUIMessage } from "./Messagelist";
 import toast, { Toaster } from "react-hot-toast";
+
 type Props = {
   chatId: string;
+  documentIds?: string[];
 };
-const PdfChatBox = ({ chatId }: Props) => {
-  const { input, handleInputChange, handleSubmit, messages, isLoading } =
-    useChat({
+
+const PdfChatBox = ({ chatId, documentIds }: Props) => {
+  const [input, setInput] = useState("");
+
+  const { messages, sendMessage, status } = useChat<ChatUIMessage>({
+    transport: new DefaultChatTransport({
       api: "/api/pdfchat",
-      body: {
-        chatId,
-      },
-      onError: (error) => {
-        console.error(error);
-        if (
-          error.message.includes(
-            "You don't have enough credits to perform this action",
-          )
-        ) {
-          console.log("toast is comming");
-          // alert("Insufficient Credits");
-          toast("Insufficient Credits", {
-            style: {
-              border: "1px solid red",
-            },
-          });
-        } else {
-          toast("Serever error!");
-        }
-      },
-    });
+      body: { chatId, documentIds },
+    }),
+    onError: (error) => {
+      console.error(error);
+      if (
+        error.message.includes(
+          "You don't have enough credits to perform this action",
+        )
+      ) {
+        toast("Insufficient Credits", {
+          style: { border: "1px solid red" },
+        });
+      } else {
+        toast("Server error!");
+      }
+    },
+  });
 
-  console.log("messages", messages);
-  // useEffect(() => {
-  //   axios.get(`/api/getcredits`);
-
-  //   console.log("Iput");
-  // }, [handleSubmit]);
+  const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
     const messageConatiner = document.getElementById("message-conatiner");
@@ -52,6 +46,15 @@ const PdfChatBox = ({ chatId }: Props) => {
       behavior: "smooth",
     });
   }, [messages]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    void sendMessage({ text });
+    setInput("");
+  };
+
   return (
     <div
       id="message-conatiner"
@@ -74,7 +77,7 @@ const PdfChatBox = ({ chatId }: Props) => {
         <Input
           placeholder="ask any question"
           value={input}
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
         />
         <Button>
           <SendIcon />
