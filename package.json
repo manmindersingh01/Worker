@@ -28,6 +28,8 @@
     "@ai-sdk/openai": "^3.0.68",
     "@ai-sdk/react": "^3.0.199",
     "@auth/prisma-adapter": "^2.7.2",
+    "@aws-sdk/client-s3": "^3.1063.0",
+    "@aws-sdk/s3-request-presigner": "^3.1063.0",
     "@google/generative-ai": "^0.21.0",
     "@hookform/resolvers": "^3.9.1",
     "@langchain/community": "^0.3.20",
