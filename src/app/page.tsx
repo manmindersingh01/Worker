@@ -1,23 +1,47 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import React from "react";
 import {
+  ArrowRight,
   BookOpenText,
-  FileText,
+  FileStack,
+  Layers,
+  MessageSquareText,
   Quote,
   ScrollText,
+  Search,
+  ShieldCheck,
   Sparkles,
+  Upload,
 } from "lucide-react";
-import LoginForm from "~/components/loginForm";
 
-import DotPattern from "~/components/ui/dot-pattern";
+import PlasmaOrb from "~/components/plasmaOrb";
 import { getUserSession } from "~/hooks/getUser";
-import { cn } from "~/lib/utils";
+
+const NAV = [
+  { label: "Features", href: "#features" },
+  { label: "How it works", href: "#how" },
+  { label: "FAQ", href: "#faq" },
+];
+
+const FORMATS = [
+  "PDFs",
+  "Research papers",
+  "Contracts",
+  "Financial reports",
+  "Manuals",
+  "Slide decks",
+  "Whitepapers",
+  "Case files",
+  "Policies",
+  "Textbooks",
+];
 
 const FEATURES = [
   {
     icon: ScrollText,
     title: "Many PDFs, one conversation",
-    body: "Upload a stack of documents and question them together — answers reason across the whole shelf.",
+    body: "Upload a stack of documents and question them together — answers reason across your whole library at once.",
   },
   {
     icon: Quote,
@@ -31,10 +55,41 @@ const FEATURES = [
   },
 ];
 
-const TRUST = [
-  "Page-level citations",
-  "No hallucinated facts",
-  "Your library stays private",
+const STEPS = [
+  {
+    icon: Upload,
+    title: "Upload your documents",
+    body: "Drop in PDFs — one or a hundred. Your library stays private to you.",
+  },
+  {
+    icon: Layers,
+    title: "We index every page",
+    body: "Each document is parsed and embedded so meaning, not just keywords, is searchable.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Ask, get cited answers",
+    body: "Chat naturally. Every response links back to the exact page it came from.",
+  },
+];
+
+const FAQ = [
+  {
+    q: "How do citations work?",
+    a: "Every answer is generated only from passages retrieved out of your documents, and each claim is linked to the specific document and page number so you can verify it instantly.",
+  },
+  {
+    q: "Can it read across multiple PDFs at once?",
+    a: "Yes. Upload as many documents as you like — questions reason across your entire library, not one file at a time.",
+  },
+  {
+    q: "Will it make things up?",
+    a: "Answers are grounded in retrieved content. If the documents don't contain the answer, Levia tells you rather than inventing one.",
+  },
+  {
+    q: "Is my data private?",
+    a: "Your library is tied to your account and is only used to answer your questions.",
+  },
 ];
 
 async function Page() {
@@ -45,240 +100,300 @@ async function Page() {
   }
 
   return (
-    <div className="bg-paper relative min-h-[100dvh] w-full overflow-hidden">
-      {/* Atmosphere: warm key-light + faint dot grain + a soft saffron wash */}
-      <div className="glow-saffron pointer-events-none absolute inset-x-0 top-0 z-0 h-[640px]" />
-      <DotPattern
-        className={cn(
-          "[mask-image:radial-gradient(700px_circle_at_50%_18%,white,transparent)] fill-foreground/[0.06]",
-        )}
-      />
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground">
+      {/* ====== Nav ====== */}
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_24px_-4px_hsl(var(--grad-from)/0.7)]">
+              <BookOpenText className="h-5 w-5" aria-hidden />
+            </span>
+            <span className="text-lg font-bold tracking-tight">Levia</span>
+          </Link>
 
-      {/* Top bar */}
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-accent-foreground shadow-paper">
-            <BookOpenText className="h-5 w-5" aria-hidden />
-          </span>
-          <span className="font-display text-lg font-semibold tracking-tight text-foreground">
-            Archive
-          </span>
+          <nav className="border-gradient hidden items-center gap-1 rounded-full bg-card/50 px-1.5 py-1.5 backdrop-blur-sm md:flex">
+            {NAV.map((n) => (
+              <a
+                key={n.href}
+                href={n.href}
+                className="rounded-full px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+              >
+                {n.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/signin"
+              className="hidden rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:block"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signin"
+              className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] px-4 py-2 text-sm font-semibold text-background shadow-[0_0_24px_-6px_hsl(var(--grad-from)/0.8)] transition-shadow hover:shadow-[0_0_32px_-4px_hsl(var(--grad-from)/0.9)]"
+            >
+              Get started
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
         </div>
-        <span className="hidden items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 font-mono text-[11px] text-muted-foreground backdrop-blur-sm sm:inline-flex">
-          <Sparkles className="h-3 w-3 text-accent" aria-hidden />
-          grounded retrieval · cited answers
-        </span>
       </header>
 
-      {/* Hero */}
-      <main className="relative z-10 mx-auto max-w-6xl px-6">
-        <section className="flex flex-col items-center pt-12 text-center sm:pt-16">
-          <span className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent-soft px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-wide text-accent-foreground shadow-paper">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-            </span>
-            Your reading room for documents
-          </span>
+      {/* ====== Hero ====== */}
+      <section className="relative isolate overflow-hidden">
+        <div className="grid-bg pointer-events-none absolute inset-0 [mask-image:radial-gradient(80%_70%_at_50%_0%,#000,transparent)]" />
+        <div className="aurora pointer-events-none absolute inset-0" />
 
-          <h1
-            className="text-balance mt-6 max-w-3xl animate-fade-up font-display text-4xl font-semibold leading-[1.04] tracking-tight text-foreground sm:text-6xl"
-            style={{ animationDelay: "60ms" }}
-          >
-            Ask your documents.
-            <br />
-            <span className="text-accent">
-              Get answers with{" "}
-              <span className="marker animate-marker text-foreground">
-                receipts.
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-5 pb-20 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
+          {/* Left: copy */}
+          <div className="animate-fade-up text-center lg:text-left">
+            <span className="border-gradient inline-flex items-center gap-2 rounded-full bg-card/60 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[hsl(var(--grad-to))] opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(var(--grad-to))]" />
               </span>
+              Grounded retrieval · cited answers
             </span>
-          </h1>
 
-          <p
-            className="text-balance mt-5 max-w-xl animate-fade-up text-base leading-relaxed text-muted-foreground sm:text-lg"
-            style={{ animationDelay: "120ms" }}
-          >
-            Upload your PDFs and have a conversation grounded in their contents —
-            every answer cites the page it came from, so nothing is invented.
-          </p>
+            <h1
+              className="text-balance mx-auto mt-6 max-w-xl text-5xl font-extrabold leading-[0.98] tracking-tight sm:text-6xl lg:mx-0"
+              style={{ animationDelay: "60ms" }}
+            >
+              Chat with your documents,{" "}
+              <span className="text-gradient text-gradient-animate">
+                get answers with receipts
+              </span>
+            </h1>
 
-          <div
-            className="mt-9 flex w-full animate-fade-up flex-col items-center"
-            style={{ animationDelay: "180ms" }}
-          >
-            <LoginForm />
-          </div>
-          <p
-            className="mt-4 animate-fade-in font-mono text-[11px] text-muted-foreground"
-            style={{ animationDelay: "260ms" }}
-          >
-            Use the demo account or your email to start reading.
-          </p>
+            <p className="text-balance mx-auto mt-6 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
+              Upload your PDFs and have a conversation grounded in their
+              contents. Every answer cites the exact page it came from — so
+              nothing is invented.
+            </p>
 
-          {/* Trust strip */}
-          <ul
-            className="mt-7 flex animate-fade-in flex-wrap items-center justify-center gap-x-5 gap-y-2"
-            style={{ animationDelay: "320ms" }}
-          >
-            {TRUST.map((t) => (
-              <li
-                key={t}
-                className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-muted-foreground"
+            <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              <Link
+                href="/signin"
+                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] px-6 py-3 text-sm font-semibold text-background shadow-[0_0_36px_-8px_hsl(var(--grad-from)/0.9)] transition-transform hover:-translate-y-0.5"
               >
-                <span className="h-1 w-1 rounded-full bg-accent" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Hero media — a live-feeling preview of the reading room */}
-        <section
-          className="relative mx-auto mt-16 max-w-4xl animate-fade-up"
-          style={{ animationDelay: "240ms" }}
-        >
-          {/* Floating citation chips for depth */}
-          <div className="animate-float pointer-events-none absolute -left-3 top-10 z-20 hidden rotate-[-4deg] rounded-lg border border-border bg-card px-3 py-2 shadow-paper-lg sm:block">
-            <p className="font-mono text-[10px] uppercase tracking-wide text-accent">
-              cited
-            </p>
-            <p className="font-mono text-[11px] text-foreground">
-              report.pdf · p.12
-            </p>
-          </div>
-          <div
-            className="animate-float pointer-events-none absolute -right-4 top-24 z-20 hidden rotate-[5deg] rounded-lg border border-border bg-card px-3 py-2 shadow-paper-lg sm:block"
-            style={{ animationDelay: "1.5s" }}
-          >
-            <p className="font-mono text-[10px] uppercase tracking-wide text-success">
-              indexed
-            </p>
-            <p className="font-mono text-[11px] text-foreground">3 documents</p>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-border bg-card/90 p-2 shadow-paper-xl backdrop-blur-sm">
-            {/* Window chrome */}
-            <div className="flex items-center gap-2 px-3 py-2.5">
-              <span className="h-3 w-3 rounded-full bg-destructive/70" />
-              <span className="h-3 w-3 rounded-full bg-warning/70" />
-              <span className="h-3 w-3 rounded-full bg-success/70" />
-              <span className="ml-3 truncate font-mono text-[11px] text-muted-foreground">
-                archive — annual-report.pdf · 3 docs
-              </span>
+                Get started
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <a
+                href="#how"
+                className="border-gradient inline-flex items-center gap-2 rounded-full bg-card/50 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-card"
+              >
+                See how it works
+              </a>
             </div>
 
-            <div className="grid gap-2 overflow-hidden rounded-xl border border-border bg-background md:grid-cols-[1.15fr_1fr]">
-              {/* Chat column */}
-              <div className="flex flex-col gap-4 p-5 sm:p-6">
-                {/* User question */}
-                <div className="self-end rounded-2xl rounded-br-sm bg-secondary px-4 py-2.5 text-left text-sm text-secondary-foreground shadow-paper">
-                  What was the YoY revenue growth, and where is it stated?
-                </div>
+            <p className="mt-5 font-mono text-[11px] text-muted-foreground">
+              No setup — sign in and start reading.
+            </p>
+          </div>
 
-                {/* Assistant answer with inline citation */}
-                <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3 text-left shadow-paper">
-                  <p className="text-sm leading-relaxed text-foreground">
-                    Revenue grew{" "}
-                    <span className="marker font-medium">24% year-over-year</span>
-                    , from $4.1B to $5.1B
-                    <sup className="ml-0.5 font-mono text-[10px] font-semibold text-accent">
-                      [1]
-                    </sup>
-                    .
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-accent-soft/60 px-2.5 py-1.5">
-                    <FileText className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-                    <span className="truncate font-mono text-[10px] text-muted-foreground">
-                      [1] annual-report.pdf — page 12
-                    </span>
-                  </div>
-                </div>
+          {/* Right: orb */}
+          <div
+            className="relative mx-auto w-full max-w-md animate-fade-up"
+            style={{ animationDelay: "140ms" }}
+          >
+            <PlasmaOrb className="w-full" />
 
-                {/* Mock input */}
-                <div className="mt-1 flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5">
-                  <span className="text-sm text-muted-foreground">
-                    Ask anything across your library
-                  </span>
-                  <span className="animate-caret ml-0.5 h-4 w-px bg-accent" />
-                  <span className="ml-auto grid h-6 w-6 place-items-center rounded-full bg-accent text-accent-foreground">
-                    <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                  </span>
-                </div>
-              </div>
-
-              {/* Source / reader column */}
-              <div className="ruled hidden flex-col border-l border-border bg-card/40 p-5 sm:p-6 md:flex">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Source · page 12
-                  </span>
-                  <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[10px] text-accent-foreground">
-                    [1]
-                  </span>
-                </div>
-                <h4 className="mt-4 font-display text-sm font-semibold text-foreground">
-                  Financial Highlights
-                </h4>
-                <div className="mt-3 space-y-2">
-                  <span className="block h-2 w-full rounded bg-foreground/10" />
-                  <span className="block h-2 w-[88%] rounded bg-foreground/10" />
-                  <p className="!mt-3 text-xs leading-relaxed text-muted-foreground">
-                    Total revenue for the fiscal year reached{" "}
-                    <span className="marker font-medium text-foreground">
-                      $5.1 billion, up 24%
-                    </span>{" "}
-                    from the prior year, driven by expansion across all segments.
-                  </p>
-                  <span className="block h-2 w-[94%] rounded bg-foreground/10" />
-                  <span className="block h-2 w-[70%] rounded bg-foreground/10" />
-                </div>
-              </div>
+            {/* Floating proof chips — opposite corners of the orb */}
+            <div className="animate-float absolute -left-3 top-2 z-10 rounded-xl border border-[hsl(var(--accent)/0.4)] bg-card/85 px-3 py-2 shadow-lg backdrop-blur-md sm:-left-6 sm:top-6">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-[hsl(var(--grad-to))]">
+                cited
+              </p>
+              <p className="font-mono text-[11px] text-foreground">
+                report.pdf · p.12
+              </p>
+            </div>
+            <div
+              className="animate-float absolute -right-3 bottom-2 z-10 rounded-xl border border-[hsl(var(--success)/0.4)] bg-card/85 px-3 py-2 shadow-lg backdrop-blur-md sm:-right-6 sm:bottom-6"
+              style={{ animationDelay: "1.6s" }}
+            >
+              <p className="font-mono text-[10px] uppercase tracking-wide text-[hsl(var(--success))]">
+                indexed
+              </p>
+              <p className="font-mono text-[11px] text-foreground">
+                3 documents
+              </p>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Features — set like footnotes in the margin */}
-        <section className="mt-24 pb-28">
-          <p className="mb-8 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            Why it reads differently
+        {/* ====== Formats marquee ====== */}
+        <div className="relative border-y border-border/40 bg-card/20 py-8">
+          <p className="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+            Everything you read, in one conversation
           </p>
-          <div className="grid gap-5 sm:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <div
-                key={f.title}
-                className="group animate-fade-up relative overflow-hidden rounded-2xl border border-border bg-card/70 p-6 shadow-paper backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-accent/50 hover:shadow-paper-lg"
-                style={{ animationDelay: `${300 + i * 80}ms` }}
-              >
-                <span className="pointer-events-none absolute right-5 top-4 font-display text-5xl font-semibold text-accent/10 transition-colors group-hover:text-accent/20">
-                  {`0${i + 1}`}
+          <div className="marquee-mask relative flex overflow-hidden">
+            <div className="animate-marquee flex shrink-0 items-center gap-4 pr-4">
+              {[...FORMATS, ...FORMATS].map((f, i) => (
+                <span
+                  key={`${f}-${i}`}
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border bg-card/60 px-4 py-2 text-sm text-muted-foreground"
+                >
+                  <FileStack className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
+                  {f}
                 </span>
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent ring-1 ring-accent/10">
-                  <f.icon className="h-5 w-5" aria-hidden />
-                </span>
-                <h3 className="mt-4 font-display text-lg font-semibold text-foreground">
-                  {f.title}
-                </h3>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ====== Features ====== */}
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-[hsl(var(--accent))]">
+            Our services
+          </p>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+            Built for answers you can{" "}
+            <span className="text-gradient">trust</span>
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            Levia is a document retrieval system — chat with your files and get
+            responses grounded in the source, every time.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-5 md:grid-cols-3">
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.title}
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 p-6 transition-all hover:-translate-y-1 hover:border-[hsl(var(--accent)/0.5)] hover:shadow-[0_0_40px_-12px_hsl(var(--grad-from)/0.5)]"
+            >
+              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[radial-gradient(circle,hsl(var(--grad-from)/0.18),transparent_70%)] opacity-0 transition-opacity group-hover:opacity-100" />
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_24px_-6px_hsl(var(--grad-from)/0.8)]">
+                <f.icon className="h-5 w-5" aria-hidden />
+              </span>
+              <h3 className="mt-5 text-lg font-semibold">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {f.body}
+              </p>
+              <span className="pointer-events-none absolute right-5 top-5 font-mono text-xs text-muted-foreground/50">
+                0{i + 1}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ====== How it works ====== */}
+      <section id="how" className="relative scroll-mt-24 border-y border-border/40 bg-card/20 py-24">
+        <div className="aurora pointer-events-none absolute inset-0 opacity-40" />
+        <div className="relative mx-auto max-w-6xl px-5">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-[hsl(var(--accent))]">
+              How it works
+            </p>
+            <h2 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+              From upload to <span className="text-gradient">cited answer</span>
+            </h2>
+          </div>
+
+          <div className="relative mt-14 grid gap-8 md:grid-cols-3">
+            {/* connecting line */}
+            <div className="pointer-events-none absolute left-0 right-0 top-6 hidden h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent)/0.4)] to-transparent md:block" />
+            {STEPS.map((s, i) => (
+              <div key={s.title} className="relative text-center md:text-left">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[hsl(var(--accent)/0.4)] bg-background text-[hsl(var(--accent))] md:mx-0">
+                  <s.icon className="h-5 w-5" aria-hidden />
+                </div>
+                <p className="mt-4 font-mono text-xs text-muted-foreground">
+                  Step 0{i + 1}
+                </p>
+                <h3 className="mt-1 text-lg font-semibold">{s.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {f.body}
+                  {s.body}
                 </p>
               </div>
             ))}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-border/70">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <span className="grid h-6 w-6 place-items-center rounded-md bg-accent text-accent-foreground">
-              <BookOpenText className="h-3.5 w-3.5" aria-hidden />
-            </span>
-            <span className="font-display text-sm font-semibold text-foreground">
-              Archive
-            </span>
+      {/* ====== FAQ ====== */}
+      <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-5 py-24">
+        <div className="text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-[hsl(var(--accent))]">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+            Questions, <span className="text-gradient">answered</span>
+          </h2>
+        </div>
+
+        <div className="mt-10 space-y-3">
+          {FAQ.map((item) => (
+            <details
+              key={item.q}
+              className="group rounded-2xl border border-border bg-card/50 px-5 py-4 transition-colors open:border-[hsl(var(--accent)/0.4)] hover:border-[hsl(var(--accent)/0.3)]"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-medium">
+                {item.q}
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-muted-foreground transition-transform group-open:rotate-45">
+                  <span className="text-lg leading-none">+</span>
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                {item.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* ====== CTA band ====== */}
+      <section className="mx-auto max-w-6xl px-5 pb-24">
+        <div className="border-gradient relative overflow-hidden rounded-3xl bg-card/40 px-6 py-16 text-center">
+          <div className="aurora pointer-events-none absolute inset-0 opacity-70" />
+          <div className="relative">
+            <ShieldCheck className="mx-auto h-8 w-8 text-[hsl(var(--accent))]" />
+            <h2 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">
+              Ready to read <span className="text-gradient">smarter?</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-muted-foreground">
+              Sign in and start asking your documents in under a minute.
+            </p>
+            <Link
+              href="/signin"
+              className="group mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] px-7 py-3.5 text-sm font-semibold text-background shadow-[0_0_40px_-8px_hsl(var(--grad-from)/0.9)] transition-transform hover:-translate-y-0.5"
+            >
+              Get started free
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ====== Footer ====== */}
+      <footer className="border-t border-border/40">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[hsl(var(--grad-from))] to-[hsl(var(--grad-to))] text-background">
+              <BookOpenText className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="font-semibold">Levia</span>
+          </div>
+          <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+            <a href="#features" className="hover:text-foreground">
+              Features
+            </a>
+            <a href="#how" className="hover:text-foreground">
+              How it works
+            </a>
+            <a href="#faq" className="hover:text-foreground">
+              FAQ
+            </a>
+            <Link href="/signin" className="hover:text-foreground">
+              Sign in
+            </Link>
+          </nav>
           <p className="font-mono text-[11px] text-muted-foreground">
             Answers you can trace back to the page.
           </p>

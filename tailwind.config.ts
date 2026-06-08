@@ -13,9 +13,10 @@ export default withUt({
                     ...fontFamily.sans
                 ],
   			display: [
-  				'var(--font-fraunces)',
-  				'Georgia',
-  				'serif'
+  				'var(--font-bricolage)',
+  				'var(--font-geist-sans)',
+  				'system-ui',
+  				'sans-serif'
   			],
   			mono: [
   				'var(--font-geist-mono)',
