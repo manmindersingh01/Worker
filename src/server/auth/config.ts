@@ -1,8 +1,9 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
-import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import { z } from "zod";
 import { db } from "~/server/db";
+import { verifyUserCredentials } from "~/server/auth/users";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -25,6 +26,17 @@ declare module "next-auth" {
   // }
 }
 
+declare module "@auth/core/jwt" {
+  interface JWT {
+    id?: string;
+  }
+}
+
+const credentialsSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -32,25 +44,34 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    DiscordProvider,
-    Google,
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
+    Credentials({
+      credentials: {
+        email: {},
+        password: {},
+      },
+      authorize: async (creds) => {
+        const parsed = credentialsSchema.safeParse({
+          email: creds?.email,
+          password: creds?.password,
+        });
+        if (!parsed.success) return null;
+
+        return verifyUserCredentials(parsed.data.email, parsed.data.password);
+      },
+    }),
   ],
   adapter: PrismaAdapter(db),
+  session: { strategy: "jwt" as const },
   callbacks: {
-    session: ({ session, user }) => ({
+    jwt: ({ token, user }) => {
+      if (user) token.id = user.id;
+      return token;
+    },
+    session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
-        id: user.id,
+        id: token.id as string,
       },
     }),
   },

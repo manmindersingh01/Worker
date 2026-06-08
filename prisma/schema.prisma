@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Post {
@@ -49,6 +50,7 @@ model User {
   id            String           @id @default(cuid())
   name          String?
   email         String?          @unique
+  password      String?
   emailVerified DateTime?
   image         String?
   credits       Int              @default(300)
@@ -70,14 +72,15 @@ model ChatSession {
 }
 
 model PdfChatSession {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   title     String?
   userId    String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   messages  Message[]
-  User      User?     @relation(fields: [userId], references: [id])
-  pdfs      PDF[]     @relation("PDFToPdfChatSession")
+  User      User?      @relation(fields: [userId], references: [id])
+  pdfs      PDF[]      @relation("PDFToPdfChatSession")
+  documents Document[]
 }
 
 model PDF {
@@ -90,12 +93,12 @@ model PDF {
 
 model Message {
   id               String          @id @default(cuid())
-  chatSessionId    String
+  chatSessionId    String?
   content          String
   createdAt        DateTime        @default(now())
   sender           SenderRole
   pdfChatSessionId String?
-  chatSession      ChatSession     @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  chatSession      ChatSession?    @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
   pdfChatSession   PdfChatSession? @relation(fields: [pdfChatSessionId], references: [id], onDelete: Cascade)
 }
 
@@ -110,4 +113,42 @@ model VerificationToken {
 enum SenderRole {
   user
   model
+}
+
+enum DocumentStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  pdfChatSessionId String
+  userId           String
+  name             String
+  url              String
+  status           DocumentStatus @default(PROCESSING)
+  pageCount        Int?
+  error            String?
+  createdAt        DateTime       @default(now())
+  processedAt      DateTime?
+  session          PdfChatSession @relation(fields: [pdfChatSessionId], references: [id], onDelete: Cascade)
+  chunks           Chunk[]
+
+  @@index([pdfChatSessionId])
+  @@index([userId])
+}
+
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  page       Int
+  section    String?
+  chunkIndex Int
+  content    String
+  contextual String?
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }

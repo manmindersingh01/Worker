@@ -11,12 +11,26 @@ export default withUt({
   			sans: [
   				'var(--font-geist-sans)',
                     ...fontFamily.sans
-                ]
+                ],
+  			display: [
+  				'var(--font-fraunces)',
+  				'Georgia',
+  				'serif'
+  			],
+  			mono: [
+  				'var(--font-geist-mono)',
+  				...fontFamily.mono
+  			]
   		},
   		borderRadius: {
+  			xl: 'calc(var(--radius) + 6px)',
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		boxShadow: {
+  			paper: 'var(--shadow-md)',
+  			'paper-lg': 'var(--shadow-lg)'
   		},
   		colors: {
   			background: 'hsl(var(--background))',
@@ -43,11 +57,20 @@ export default withUt({
   			},
   			accent: {
   				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
+  				foreground: 'hsl(var(--accent-foreground))',
+  				soft: 'hsl(var(--accent-soft))'
   			},
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
+  			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
   			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
@@ -123,11 +146,21 @@ export default withUt({
   				'100%': {
   					'offset-distance': '100%'
   				}
+  			},
+  			'fade-up': {
+  				from: { opacity: '0', transform: 'translateY(8px)' },
+  				to: { opacity: '1', transform: 'translateY(0)' }
+  			},
+  			'fade-in': {
+  				from: { opacity: '0' },
+  				to: { opacity: '1' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'fade-up': 'fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both',
+  			'fade-in': 'fade-in 0.4s ease both',
   			rainbow: 'rainbow var(--speed, 2s) infinite linear',
   			'shimmer-slide': 'shimmer-slide var(--speed) ease-in-out infinite alternate',
   			'spin-around': 'spin-around calc(var(--speed) * 2) infinite linear',
