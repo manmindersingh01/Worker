@@ -14,6 +14,21 @@ export async function POST(req: Request) {
     const body = (await req.json()) as { url: string[]; name: string[] };
     const { url, name } = body;
 
+    if (
+      !Array.isArray(url) ||
+      !Array.isArray(name) ||
+      url.length === 0 ||
+      url.length !== name.length
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: "INVALID_INPUT",
+          message: "url and name must be non-empty arrays of equal length",
+        }),
+        { status: 400 },
+      );
+    }
+
     const session = await db.pdfChatSession.create({
       data: {
         title: name[0],

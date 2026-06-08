@@ -99,37 +99,36 @@ export async function POST(req: Request) {
       });
     }
 
-    // Credit check (kept tolerant / non-fatal, as in the original).
-    try {
-      const credits = await db.user.findUnique({
-        where: { id: userId },
-        select: { credits: true },
-      });
-      const usage = lastUserText.length / 4;
-      if (credits && credits.credits - usage < 0) {
-        return new Response(
-          JSON.stringify({
-            error: "INSUFFICIENT_CREDITS",
-            message: "You don't have enough credits to perform this action",
-          }),
-          { status: 402 },
-        );
-      }
-      if (credits) {
-        await db.user.update({
-          where: { id: userId },
-          data: { credits: credits.credits - usage },
-        });
-      }
-    } catch {
-      // non-fatal: never block the stream on credit bookkeeping
+    // Atomic credit debit: conditional update avoids the TOCTOU overdraft race.
+    const usage = Math.ceil(lastUserText.length / 4);
+    const debit = await db.user.updateMany({
+      where: { id: userId, credits: { gte: usage } },
+      data: { credits: { decrement: usage } },
+    });
+    if (debit.count === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "INSUFFICIENT_CREDITS",
+          message: "You don't have enough credits to perform this action",
+        }),
+        { status: 402 },
+      );
+    }
+
+    // Scope documentIds to this session: clients may only retrieve over
+    // documents that belong to the loaded session.
+    const sessionDocIds = new Set(chatSession.documents.map((d) => d.id));
+    let scopedDocumentIds: string[] | undefined = undefined;
+    if (Array.isArray(documentIds) && documentIds.length > 0) {
+      const valid = documentIds.filter((id: string) => sessionDocIds.has(id));
+      scopedDocumentIds = valid.length > 0 ? valid : undefined;
     }
 
     const r = await retrieve({
       query: lastUserText,
       history,
       userId,
-      documentIds,
+      documentIds: scopedDocumentIds,
     });
 
     const contextBlocks = r.chunks
