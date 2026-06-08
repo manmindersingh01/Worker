@@ -166,12 +166,20 @@ The retrieved context is weak and may not cover the question. Strongly prefer te
           console.log(
             `[pdfchat] finished chat=${chatId} verifiedCitations=${verified.length}`,
           );
-          // TODO(persistence): The `Message` model requires a non-null
-          // `chatSessionId` (relation to ChatSession). A PDF chat has no
-          // ChatSession, so persisting a Message here would require
-          // fabricating an unrelated ChatSession row, which we refuse to do.
-          // Skipping persistence until the schema makes `chatSessionId`
-          // optional for PDF-only messages.
+          try {
+            await db.message.createMany({
+              data: [
+                {
+                  pdfChatSessionId: chatId,
+                  sender: "user",
+                  content: lastUserText,
+                },
+                { pdfChatSessionId: chatId, sender: "model", content: text },
+              ],
+            });
+          } catch (persistErr) {
+            console.error("[pdfchat] persistence failed", persistErr);
+          }
         } catch (err) {
           console.error("[pdfchat] onFinish error", err);
         }

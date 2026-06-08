@@ -91,12 +91,12 @@ model PDF {
 
 model Message {
   id               String          @id @default(cuid())
-  chatSessionId    String
+  chatSessionId    String?
   content          String
   createdAt        DateTime        @default(now())
   sender           SenderRole
   pdfChatSessionId String?
-  chatSession      ChatSession     @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  chatSession      ChatSession?    @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
   pdfChatSession   PdfChatSession? @relation(fields: [pdfChatSessionId], references: [id], onDelete: Cascade)
 }
 
