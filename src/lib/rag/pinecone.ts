@@ -21,6 +21,7 @@ function loadEnv() {
   // require lazily so importing this module does not trigger env validation
   // (e.g. in tests that inject a fake index and never touch the real client).
 
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require("~/server/env").env as {
     PINECONE_API_KEY?: string;
     PINECONE_INDEX: string;

@@ -29,7 +29,7 @@ export function structureAwareChunk(
       buf = [];
     };
     for (const block of blocks) {
-      const heading = block.match(/^#{1,6}\s+(.*)$/m);
+      const heading = /^#{1,6}\s+(.*)$/m.exec(block);
       if (heading) section = heading[1].trim();
       if (isTableBlock(block)) {
         flush();

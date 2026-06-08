@@ -17,7 +17,7 @@ export async function sparseSearch(
     const client = db ?? ((await import("~/server/db")).db as unknown as DbLike);
 
     const docFilter =
-      opts.documentIds && opts.documentIds.length
+      opts.documentIds?.length
         ? Prisma.sql`AND "Chunk"."documentId" = ANY(${opts.documentIds})`
         : Prisma.empty;
 

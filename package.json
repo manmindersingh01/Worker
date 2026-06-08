@@ -25,6 +25,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.0.12",
     "@ai-sdk/openai": "^3.0.68",
+    "@ai-sdk/react": "^3.0.199",
     "@auth/prisma-adapter": "^2.7.2",
     "@google/generative-ai": "^0.21.0",
     "@hookform/resolvers": "^3.9.1",

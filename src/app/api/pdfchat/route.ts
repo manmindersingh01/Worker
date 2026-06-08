@@ -1,54 +1,112 @@
 import { openai } from "@ai-sdk/openai";
-import { Message, streamText, convertToCoreMessages } from "ai";
-import { getContext } from "~/lib/context";
 import {
-  checkAndUpdateCredits,
-  InsufficientCreditsError,
-} from "~/lib/credit-check";
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  type ModelMessage,
+  type UIMessage,
+} from "ai";
+import { parseCitations, verifyCitations } from "~/lib/rag/citations";
+import { retrieve } from "~/lib/rag/retrieve";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+
+// Source chip data carried to the client as a custom data part.
+type SourceChip = {
+  documentId: string;
+  docName: string;
+  page: number;
+  snippet: string;
+};
+
+// UI message type for this route: standard parts plus a `data-sources` part.
+type ChatUIMessage = UIMessage<never, { sources: SourceChip[] }>;
+
+/** Extract plain text from a UIMessage (v6 parts) or a simple {role,content}. */
+function messageText(m: unknown): string {
+  if (!m || typeof m !== "object") return "";
+  const obj = m as Record<string, unknown>;
+  if (typeof obj.content === "string") return obj.content;
+  if (Array.isArray(obj.parts)) {
+    return obj.parts
+      .filter(
+        (p): p is { type: "text"; text: string } =>
+          !!p &&
+          typeof p === "object" &&
+          (p as { type?: unknown }).type === "text" &&
+          typeof (p as { text?: unknown }).text === "string",
+      )
+      .map((p) => p.text)
+      .join("");
+  }
+  return "";
+}
+
+function messageRole(m: unknown): "user" | "assistant" | "system" | undefined {
+  if (!m || typeof m !== "object") return undefined;
+  const role = (m as { role?: unknown }).role;
+  if (role === "user" || role === "assistant" || role === "system") return role;
+  return undefined;
+}
+
 export async function POST(req: Request) {
   try {
-    console.log("request reached backend");
-
     const session = await auth();
     if (!session?.user?.id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
       });
     }
+    const userId = session.user.id;
 
-    const { messages, chatId } = await req.json();
-    const chatSession = await db.pdfChatSession.findUnique({
-      where: {
-        id: chatId,
-      },
-      include: {
-        pdfs: true,
-      },
+    const {
+      messages,
+      chatId,
+      documentIds,
+    }: {
+      messages: unknown[];
+      chatId: string;
+      documentIds?: string[];
+    } = await req.json();
+
+    const incoming = Array.isArray(messages) ? messages : [];
+
+    // Derive prior turns (history) and the latest user text.
+    const lastUserText = (() => {
+      for (let i = incoming.length - 1; i >= 0; i--) {
+        if (messageRole(incoming[i]) === "user") return messageText(incoming[i]);
+      }
+      return "";
+    })();
+
+    const history = incoming
+      .map((m) => ({ role: messageRole(m), content: messageText(m) }))
+      .filter(
+        (m): m is { role: "user" | "assistant"; content: string } =>
+          (m.role === "user" || m.role === "assistant") && m.content.length > 0,
+      )
+      // history = prior turns only (exclude the final user message)
+      .slice(0, -1);
+
+    const chatSession = await db.pdfChatSession.findFirst({
+      where: { id: chatId, userId },
+      include: { documents: true },
     });
-
     if (!chatSession) {
       return new Response(JSON.stringify({ error: "Chat session not found" }), {
         status: 404,
       });
     }
 
-    // Check credits before processing
+    // Credit check (kept tolerant / non-fatal, as in the original).
     try {
-      // await checkAndUpdateCredits(
-      //   session.user.id,
-      //   messages[messages.length - 1].content.length,
-      // );
       const credits = await db.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: { credits: true },
       });
-      // credit usage as per length
-      const usage = messages[messages.length - 1].content.length / 4;
-
-      if (credits.credits - usage < 0) {
-        console.log("Ensufficient credits");
+      const usage = lastUserText.length / 4;
+      if (credits && credits.credits - usage < 0) {
         return new Response(
           JSON.stringify({
             error: "INSUFFICIENT_CREDITS",
@@ -57,59 +115,84 @@ export async function POST(req: Request) {
           { status: 402 },
         );
       }
-      await db.user.update({
-        where: { id: session.user.id },
-        data: {
-          credits: credits.credits - usage,
-        },
-      });
-    } catch (error) {}
+      if (credits) {
+        await db.user.update({
+          where: { id: userId },
+          data: { credits: credits.credits - usage },
+        });
+      }
+    } catch {
+      // non-fatal: never block the stream on credit bookkeeping
+    }
 
-    const fileKey = chatSession.pdfs[0].url;
-    const lastMessage = messages[messages.length - 1];
-    const context = await getContext(lastMessage.content, fileKey);
-    console.log("context", context);
-    const prompt = {
-      role: "system",
-      content: `You are a helpful AI assistant designed to help users interact with PDF documents through a conversational interface. The user has uploaded a PDF document, and the full extracted text content of the PDF is provided below.
+    const r = await retrieve({
+      query: lastUserText,
+      history,
+      userId,
+      documentIds,
+    });
 
-PDF Content:
+    const contextBlocks = r.chunks
+      .map((c) => `[${c.docName} p.${c.page}] ${c.content}`)
+      .join("\n\n");
+
+    let systemPrompt = `You are a grounded assistant answering questions about the user's PDF documents.
+
+Answer ONLY using the provided context. Cite every claim inline using the exact format [DocName p.N] matching the sources. If the context does not contain the answer, say you don't know — do not invent. Be concise and well-formatted.
+
+Context:
 """
-${context}
-"""
+${contextBlocks}
+"""`;
 
-When the user asks a question, analyze the content of the PDF and respond in a clear, concise, and informative manner. Provide relevant summaries, explanations, or answers based on the document. If the question is unclear, ask for clarification. If a specific section or page of the PDF is relevant, refer to it explicitly.
+    if (r.weakContext) {
+      systemPrompt += `
 
-Guidelines:
-- Be accurate and stick to the content in the PDF.
-- If the answer depends on a specific part of the document, quote or paraphrase it.
-- If the content is not found in the PDF, politely let the user know.
-- Format longer answers with headings or bullet points if appropriate.
-- When summarizing, maintain the original meaning.
-- Keep answers in a conversational tone suitable for a chat interface.
+The retrieved context is weak and may not cover the question. Strongly prefer telling the user that the documents do not appear to cover this rather than guessing.`;
+    }
 
-Start by greeting the user and letting them know you are ready to assist with their uploaded document.
-`, // Your existing prompt
-    };
+    const modelMessages: ModelMessage[] = await convertToModelMessages(
+      incoming as ChatUIMessage[],
+    );
 
-    console.log("prompt", prompt);
     const result = streamText({
-      model: openai("gpt-3.5-turbo"),
-      messages: [
-        prompt,
-        ...messages.filter((message: Message) => message.role === "user"),
-      ],
-      temperature: 0.7,
-      onFinish: async ({ response }) => {
+      model: openai("gpt-4o-mini"),
+      system: systemPrompt,
+      messages: modelMessages,
+      temperature: 0.2,
+      onFinish: async ({ text }) => {
         try {
-          console.log("response from model", response.messages);
-        } catch (error) {
-          console.log("error", error);
+          const verified = verifyCitations(parseCitations(text), r.chunks);
+          console.log(
+            `[pdfchat] finished chat=${chatId} verifiedCitations=${verified.length}`,
+          );
+          // TODO(persistence): The `Message` model requires a non-null
+          // `chatSessionId` (relation to ChatSession). A PDF chat has no
+          // ChatSession, so persisting a Message here would require
+          // fabricating an unrelated ChatSession row, which we refuse to do.
+          // Skipping persistence until the schema makes `chatSessionId`
+          // optional for PDF-only messages.
+        } catch (err) {
+          console.error("[pdfchat] onFinish error", err);
         }
       },
     });
 
-    return result.toDataStreamResponse();
+    const sources: SourceChip[] = r.chunks.map((c) => ({
+      documentId: c.documentId,
+      docName: c.docName,
+      page: c.page,
+      snippet: c.content.slice(0, 300),
+    }));
+
+    const stream = createUIMessageStream<ChatUIMessage>({
+      execute: ({ writer }) => {
+        writer.write({ type: "data-sources", id: "sources", data: sources });
+        writer.merge(result.toUIMessageStream());
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
   } catch (error) {
     console.error("Error in PDF chat API:", error);
     return new Response(
