@@ -13,13 +13,26 @@ import { namespaceFor, upsertChunks } from "./pinecone";
  * the document is marked FAILED with the error. Idempotent via deterministic
  * chunk ids + skipDuplicates, so a re-run is safe.
  */
-// Wrap a step so any failure is labelled with which stage/service broke.
+// Wrap a step so any failure is labelled with which stage/service broke,
+// including the underlying cause (e.g. fetch failed / ENOTFOUND / status code).
 async function step<T>(name: string, fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`[${name}] ${msg}`);
+    const err = e as {
+      message?: string;
+      status?: number;
+      code?: string;
+      cause?: { message?: string; code?: string };
+    };
+    const parts = [
+      err?.message ?? String(e),
+      err?.status != null ? `status=${err.status}` : "",
+      err?.code ? `code=${err.code}` : "",
+      err?.cause?.message ? `cause=${err.cause.message}` : "",
+      err?.cause?.code ? `causeCode=${err.cause.code}` : "",
+    ].filter(Boolean);
+    throw new Error(`[${name}] ${parts.join(" | ")}`);
   }
 }
 
