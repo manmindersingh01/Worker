@@ -25,11 +25,13 @@ async function step<T>(name: string, fn: () => Promise<T>): Promise<T> {
       code?: string;
       cause?: { message?: string; code?: string };
     };
+    // Redact anything resembling a secret so it never lands in the DB/logs.
+    const redact = (s: string) =>
+      s.replace(/(sk-[A-Za-z0-9_-]{6,}|Bearer\s+\S+|pcsk_\S+|signkey-\S+)/g, "***");
     const parts = [
-      err?.message ?? String(e),
+      redact(err?.message ?? String(e)),
       err?.status != null ? `status=${err.status}` : "",
       err?.code ? `code=${err.code}` : "",
-      err?.cause?.message ? `cause=${err.cause.message}` : "",
       err?.cause?.code ? `causeCode=${err.cause.code}` : "",
     ].filter(Boolean);
     throw new Error(`[${name}] ${parts.join(" | ")}`);

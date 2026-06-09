@@ -1,6 +1,32 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+// Defensive: trim accidental whitespace/newlines from pasted secrets. A trailing
+// "\n" in a dashboard-pasted key (e.g. OPENAI_API_KEY) makes the
+// "Authorization: Bearer ...\n" header an illegal HTTP value and every request
+// fails with an opaque "Connection error.". Strip it once, here, so every
+// consumer (raw SDKs, @ai-sdk/* auto-reading process.env, Prisma) is safe.
+for (const k of [
+  "OPENAI_API_KEY",
+  "PINECONE_API_KEY",
+  "PINECONE_INDEX",
+  "COHERE_API_KEY",
+  "LLAMA_CLOUD_API_KEY",
+  "INNGEST_EVENT_KEY",
+  "INNGEST_SIGNING_KEY",
+  "AWS_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "S3_BUCKET_NAME",
+  "AUTH_SECRET",
+  "DATABASE_URL",
+  "DIRECT_URL",
+]) {
+  if (typeof process.env[k] === "string") {
+    process.env[k] = process.env[k].trim();
+  }
+}
+
 export const env = createEnv({
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
