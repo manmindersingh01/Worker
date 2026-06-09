@@ -49,6 +49,8 @@ export function namespaceFor(userId: string): string {
   return `user:${userId}`;
 }
 
+const UPSERT_BATCH_SIZE = 100;
+
 export async function upsertChunks(
   namespace: string,
   records: { id: string; values: number[]; documentId: string; page: number }[],
@@ -59,7 +61,10 @@ export async function upsertChunks(
     values: r.values,
     metadata: { chunkId: r.id, documentId: r.documentId, page: r.page },
   }));
-  await index.namespace(namespace).upsert(vectors);
+  const ns = index.namespace(namespace);
+  for (let i = 0; i < vectors.length; i += UPSERT_BATCH_SIZE) {
+    await ns.upsert(vectors.slice(i, i + UPSERT_BATCH_SIZE));
+  }
 }
 
 export async function denseQuery(

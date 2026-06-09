@@ -37,6 +37,34 @@ describe("upsertChunks", () => {
       },
     ]);
   });
+
+  it("batches upserts into groups of 100", async () => {
+    const f = fakeIndex();
+    const records = Array.from({ length: 250 }, (_, i) => ({
+      id: `c${i}`,
+      values: [i],
+      documentId: "d1",
+      page: i,
+    }));
+    await upsertChunks("user:u1", records, f.index);
+
+    expect(f.upsert).toHaveBeenCalledTimes(3);
+    expect(f.upsert.mock.calls[0][0]).toHaveLength(100);
+    expect(f.upsert.mock.calls[1][0]).toHaveLength(100);
+    expect(f.upsert.mock.calls[2][0]).toHaveLength(50);
+
+    // metadata mapping preserved across batches
+    expect(f.upsert.mock.calls[0][0][0]).toEqual({
+      id: "c0",
+      values: [0],
+      metadata: { chunkId: "c0", documentId: "d1", page: 0 },
+    });
+    expect(f.upsert.mock.calls[2][0][49]).toEqual({
+      id: "c249",
+      values: [249],
+      metadata: { chunkId: "c249", documentId: "d1", page: 249 },
+    });
+  });
 });
 
 describe("denseQuery", () => {
