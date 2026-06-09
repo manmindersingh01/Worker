@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { inngest } from "~/inngest/client";
+import { MAX_PDFS_PER_USER } from "~/lib/limits";
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +27,14 @@ export async function POST(req: Request) {
           message: "keys and names must be non-empty arrays of equal length",
         }),
         { status: 400 },
+      );
+    }
+
+    const existing = await db.document.count({ where: { userId } });
+    if (existing >= MAX_PDFS_PER_USER || existing + keys.length > MAX_PDFS_PER_USER) {
+      return NextResponse.json(
+        { error: "PDF_LIMIT", message: `You can upload at most ${MAX_PDFS_PER_USER} PDF.` },
+        { status: 403 },
       );
     }
 

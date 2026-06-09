@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { MAX_MESSAGES_PER_USER } from "~/lib/limits";
 interface CodeProps {
   inline?: boolean;
   className?: string;
@@ -27,6 +28,9 @@ const PdfChat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const userMessageCount = messages.filter((m) => m.role === "user").length;
+  const limitReached = userMessageCount >= MAX_MESSAGES_PER_USER;
 
   useEffect(() => {
     const fetchUserSession = async () => {
@@ -53,7 +57,7 @@ const PdfChat = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || limitReached) return;
 
     setIsLoading(true);
     const userMessage = { role: "user" as const, content: input };
@@ -75,6 +79,19 @@ const PdfChat = () => {
           userId,
         }),
       });
+
+      if (response.status === 429) {
+        const data = (await response.json()) as { message?: string };
+        const limitMsg =
+          data?.message ??
+          `You've reached the ${MAX_MESSAGES_PER_USER}-message limit for this demo.`;
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          { role: "assistant", content: limitMsg },
+        ]);
+        setIsLoading(false);
+        return;
+      }
 
       if (!response.ok) throw new Error(response.statusText);
 
@@ -229,15 +246,19 @@ const PdfChat = () => {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message…"
-              disabled={isLoading}
+              placeholder={
+                limitReached
+                  ? `Demo limit reached (${MAX_MESSAGES_PER_USER} messages).`
+                  : "Type your message…"
+              }
+              disabled={isLoading || limitReached}
               className="border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
             <Button
               type="submit"
               size="icon"
               className="shrink-0 bg-gradient-to-r from-[hsl(var(--grad-from))] via-[hsl(var(--grad-via))] to-[hsl(var(--grad-to))] text-background shadow-[0_0_20px_-6px_hsl(var(--grad-from)/0.8)] hover:opacity-95 hover:bg-gradient-to-r disabled:opacity-50"
-              disabled={isLoading}
+              disabled={isLoading || limitReached}
             >
               {isLoading ? (
                 <LoaderIcon className="animate-spin" />
@@ -246,6 +267,11 @@ const PdfChat = () => {
               )}
             </Button>
           </form>
+          {limitReached && (
+            <p className="mt-1 px-2 font-mono text-[11px] text-muted-foreground">
+              Demo limit reached ({MAX_MESSAGES_PER_USER} messages).
+            </p>
+          )}
         </div>
       </div>
     </div>

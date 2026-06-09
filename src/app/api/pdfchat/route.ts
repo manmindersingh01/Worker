@@ -11,6 +11,7 @@ import { parseCitations, verifyCitations } from "~/lib/rag/citations";
 import { retrieve } from "~/lib/rag/retrieve";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { MAX_MESSAGES_PER_USER } from "~/lib/limits";
 
 // Retrieval (rewrite + hybrid + rerank) plus generation can exceed the Vercel
 // Hobby default of 10s; raise to the Hobby maximum.
@@ -102,6 +103,19 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Chat session not found" }), {
         status: 404,
       });
+    }
+
+    const userMsgCount = await db.message.count({
+      where: { pdfChatSession: { userId }, sender: "user" },
+    });
+    if (userMsgCount >= MAX_MESSAGES_PER_USER) {
+      return new Response(
+        JSON.stringify({
+          error: "MESSAGE_LIMIT",
+          message: `You've reached the ${MAX_MESSAGES_PER_USER}-message limit for this demo.`,
+        }),
+        { status: 429 },
+      );
     }
 
     // Atomic credit debit: conditional update avoids the TOCTOU overdraft race.

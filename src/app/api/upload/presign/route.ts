@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { buildObjectKey, presignPut } from "~/lib/s3";
+import { db } from "~/server/db";
+import { MAX_PDFS_PER_USER } from "~/lib/limits";
 
 const MAX_SIZE = 32 * 1024 * 1024; // 32 MB
 
@@ -20,6 +22,14 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "INVALID_INPUT", message: "files must be a non-empty array" },
       { status: 400 },
+    );
+  }
+
+  const existing = await db.document.count({ where: { userId } });
+  if (existing >= MAX_PDFS_PER_USER || files.length > MAX_PDFS_PER_USER - existing) {
+    return NextResponse.json(
+      { error: "PDF_LIMIT", message: `You can upload at most ${MAX_PDFS_PER_USER} PDF.` },
+      { status: 403 },
     );
   }
 
