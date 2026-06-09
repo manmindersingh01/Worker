@@ -1,40 +1,62 @@
-import { type NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
+import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { env } from "~/server/env";
+import { MAX_MESSAGES_PER_USER } from "~/lib/limits";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Generation can exceed the Vercel Hobby default of 10s; raise to the maximum.
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 interface Message {
-  role: "user" | "model";
+  role: "user" | "assistant" | "model";
   content: string;
 }
 
 interface RequestBody {
   messages: Message[];
-  userId: string;
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const requestBody = (await request.json()) as RequestBody;
+const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
-    if (
-      !requestBody?.messages?.length ||
-      typeof requestBody.userId !== "string"
-    ) {
+export async function POST(request: Request) {
+  try {
+    // Trust only the session for identity — never the request body.
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+      });
+    }
+
+    const body = (await request.json()) as RequestBody;
+    if (!body?.messages?.length) {
       return new Response(JSON.stringify({ error: "Invalid request body" }), {
         status: 400,
       });
     }
+    const { messages } = body;
 
-    const { messages, userId } = requestBody;
     const lastMessage = messages.at(-1);
-
     if (!lastMessage?.content) {
       return new Response(
         JSON.stringify({ error: "Last message content is required" }),
         { status: 400 },
+      );
+    }
+
+    // Enforce the per-user message cap before generating.
+    const userMsgCount = await db.message.count({
+      where: { chatSession: { userId }, sender: "user" },
+    });
+    if (userMsgCount >= MAX_MESSAGES_PER_USER) {
+      return new Response(
+        JSON.stringify({
+          error: "MESSAGE_LIMIT",
+          message: `You've reached the ${MAX_MESSAGES_PER_USER}-message limit for this demo.`,
+        }),
+        { status: 429 },
       );
     }
 
@@ -50,26 +72,34 @@ export async function POST(request: NextRequest) {
         },
       }));
 
-    const formattedHistory = messages.slice(0, -1).map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    }));
+    const oaMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      { role: "system", content: "You are a helpful, concise assistant." },
+      ...messages.map((m) => ({
+        role: (m.role === "user" ? "user" : "assistant") as
+          | "user"
+          | "assistant",
+        content: m.content,
+      })),
+    ];
 
-    const chat = model.startChat({
-      history: formattedHistory,
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: oaMessages,
+      stream: true,
     });
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const result = await chat.sendMessageStream(lastMessage.content);
           let fullResponse = "";
 
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            fullResponse += chunkText;
-            controller.enqueue(encoder.encode(chunkText));
+          for await (const part of completion) {
+            const chunkText = part.choices[0]?.delta?.content ?? "";
+            if (chunkText) {
+              fullResponse += chunkText;
+              controller.enqueue(encoder.encode(chunkText));
+            }
           }
 
           await db.message.createMany({
@@ -103,7 +133,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in /api/chat:", error);
+    console.error("Error in /api/chat2:", error);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
     });
