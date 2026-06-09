@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const existing = await db.document.count({ where: { userId } });
+  // FAILED uploads don't consume the user's quota — let them retry.
+  const existing = await db.document.count({
+    where: { userId, status: { not: "FAILED" } },
+  });
   if (existing >= MAX_PDFS_PER_USER || files.length > MAX_PDFS_PER_USER - existing) {
     return NextResponse.json(
       { error: "PDF_LIMIT", message: `You can upload at most ${MAX_PDFS_PER_USER} PDF.` },
