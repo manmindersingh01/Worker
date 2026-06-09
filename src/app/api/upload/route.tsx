@@ -1,4 +1,4 @@
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { ingestDocumentById } from "~/lib/rag/ingestDocument";
@@ -63,15 +63,15 @@ export async function POST(req: Request) {
           status: "PROCESSING",
         },
       });
-      // Ingest in the background of this same serverless invocation. The client
-      // gets an immediate response and polls /api/documents until READY.
-      after(async () => {
-        try {
-          await ingestDocumentById(doc.id);
-        } catch (err) {
-          console.error("inline ingest failed", doc.id, err);
-        }
-      });
+      // Ingest SYNCHRONOUSLY inside the request. Background work (after()) on
+      // Vercel races function teardown and aborts the in-flight OpenAI/Pinecone
+      // calls ("Connection error."). Awaiting here keeps the function alive for
+      // the whole ~3-5s job. ingestDocumentById marks the doc FAILED on error.
+      try {
+        await ingestDocumentById(doc.id);
+      } catch (err) {
+        console.error("inline ingest failed", doc.id, err);
+      }
     }
 
     return NextResponse.json({ id: session.id }, { status: 200 });
