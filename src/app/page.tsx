@@ -15,7 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 
-import PlasmaOrb from "~/components/plasmaOrb";
+import Globe from "~/components/ui/globe";
 import { getUserSession } from "~/hooks/getUser";
 
 const NAV = [
@@ -194,12 +194,14 @@ async function Page() {
             </p>
           </div>
 
-          {/* Right: orb */}
+          {/* Right: globe */}
           <div
-            className="relative mx-auto w-full max-w-md animate-fade-up"
+            className="relative mx-auto aspect-square w-full max-w-md animate-fade-up"
             style={{ animationDelay: "140ms" }}
           >
-            <PlasmaOrb className="w-full" />
+            {/* ambient bloom so the globe reads as a hero centerpiece */}
+            <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,hsl(var(--grad-from)/0.32),hsl(var(--grad-to)/0.16)_45%,transparent_68%)] blur-2xl" />
+            <Globe />
 
             {/* Floating proof chips — opposite corners of the orb */}
             <div className="animate-float absolute -left-3 top-2 z-10 rounded-xl border border-[hsl(var(--accent)/0.4)] bg-card/85 px-3 py-2 shadow-lg backdrop-blur-md sm:-left-6 sm:top-6">
