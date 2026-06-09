@@ -7,6 +7,7 @@ import { SendIcon } from "lucide-react";
 import Messagelist, { type ChatUIMessage } from "./Messagelist";
 import toast, { Toaster } from "react-hot-toast";
 import { cn } from "~/lib/utils";
+import { MAX_MESSAGES_PER_USER } from "~/lib/limits";
 
 type Props = {
   chatId: string;
@@ -31,6 +32,11 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
         )
       ) {
         toast.error("Insufficient credits to send this message.");
+      } else if (
+        error.message.includes("MESSAGE_LIMIT") ||
+        error.message.toLowerCase().includes("message limit")
+      ) {
+        toast.error("You've reached the demo message limit.");
       } else {
         toast.error("Something went wrong. Please try again.");
       }
@@ -41,6 +47,9 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
   const isStreaming = status === "streaming";
   const isLoading = isSubmitting || isStreaming;
 
+  const userMessageCount = messages.filter((m) => m.role === "user").length;
+  const limitReached = userMessageCount >= MAX_MESSAGES_PER_USER;
+
   // Auto-scroll to the newest content as messages stream in.
   useEffect(() => {
     const el = scrollRef.current;
@@ -49,7 +58,7 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
 
   const submit = () => {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || limitReached) return;
     void sendMessage({ text });
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -117,12 +126,13 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
             }}
             onKeyDown={handleKeyDown}
             aria-label="Message"
-            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            disabled={limitReached}
+            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || limitReached || !input.trim()}
             aria-label="Send message"
             className={cn("h-8 w-8 shrink-0 transition-opacity")}
           >
@@ -130,7 +140,9 @@ const PdfChatBox = ({ chatId, documentIds }: Props) => {
           </Button>
         </div>
         <p className="mt-1.5 px-1 font-mono text-[10px] text-muted-foreground">
-          Enter to send · Shift+Enter for a new line
+          {limitReached
+            ? `Demo limit reached (${MAX_MESSAGES_PER_USER} messages).`
+            : "Enter to send · Shift+Enter for a new line"}
         </p>
       </form>
       <Toaster
