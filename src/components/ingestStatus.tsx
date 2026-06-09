@@ -61,7 +61,7 @@ export function StatusChip({
    useDocumentPolling — polls GET /api/documents?sessionId until everything is
    terminal (READY/FAILED), then stops. Returns documents + meta for the UI.
    ------------------------------------------------------------------------- */
-export function useDocumentPolling(sessionId: string | null, intervalMs = 2500) {
+export function useDocumentPolling(sessionId: string | null, intervalMs = 2000) {
   const [documents, setDocuments] = React.useState<DocumentRecord[]>([]);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(!!sessionId);
@@ -90,6 +90,8 @@ export function useDocumentPolling(sessionId: string | null, intervalMs = 2500) 
     if (!sessionId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
+    let delay = intervalMs;
+    const MAX_DELAY = 10000;
 
     const tick = async () => {
       const data = await fetchOnce();
@@ -98,7 +100,10 @@ export function useDocumentPolling(sessionId: string | null, intervalMs = 2500) 
         data && data.length > 0
           ? data.every((d) => d.status === "READY" || d.status === "FAILED")
           : false;
-      if (!settled) timer = setTimeout(tick, intervalMs);
+      if (!settled) {
+        timer = setTimeout(tick, delay);
+        delay = Math.min(delay * 1.5, MAX_DELAY);
+      }
     };
 
     void tick();

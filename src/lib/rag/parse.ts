@@ -1,38 +1,44 @@
 import type { ParsedPage } from "~/lib/rag/types";
 
-function renumber(pages: ParsedPage[]): ParsedPage[] {
-  return pages.map((p, i) => ({ page: i + 1, markdown: p.markdown }));
-}
+const MIN_TEXT_CHARS = 50; // below this total => likely scanned/image PDF
 
 /**
  * Parse a PDF buffer into per-page markdown.
  *
- * Tries `parseWithLlama` first. If it throws OR returns an empty array, falls
- * back to `unpdfFallback`. Pages are always renumbered sequentially from 1.
+ * Tries the fast in-process `unpdfFast` parser FIRST. Only when that yields
+ * almost no text (a scanned/image PDF) does it fall back to LlamaParse OCR.
+ * Pages are always renumbered sequentially from 1.
  */
 export async function parsePdf(
   buffer: Buffer,
   opts: { fileName: string },
   deps?: {
-    parseWithLlama?: (b: Buffer, n: string) => Promise<ParsedPage[]>;
-    fallback?: (b: Buffer) => Promise<ParsedPage[]>;
+    fast?: (b: Buffer) => Promise<ParsedPage[]>;
+    ocr?: (b: Buffer, fileName: string) => Promise<ParsedPage[]>;
   },
 ): Promise<ParsedPage[]> {
-  const llama = deps?.parseWithLlama ?? parseWithLlama;
-  const fallback = deps?.fallback ?? unpdfFallback;
+  const fast = deps?.fast ?? unpdfFast;
+  const ocr = deps?.ocr ?? parseWithLlama;
 
   let pages: ParsedPage[] = [];
   try {
-    pages = await llama(buffer, opts.fileName);
+    pages = await fast(buffer);
   } catch {
     pages = [];
   }
 
-  if (pages.length === 0) {
-    pages = await fallback(buffer);
+  const totalText = pages.reduce((n, p) => n + p.markdown.trim().length, 0);
+  if (totalText < MIN_TEXT_CHARS) {
+    // No usable text layer -> scanned/image PDF. Use LlamaParse if available.
+    try {
+      const o = await ocr(buffer, opts.fileName);
+      if (o.length && o.some((p) => p.markdown.trim().length > 0)) pages = o;
+    } catch {
+      /* keep whatever fast produced */
+    }
   }
 
-  return renumber(pages);
+  return pages.map((p, i) => ({ page: i + 1, markdown: p.markdown }));
 }
 
 /**
@@ -69,12 +75,12 @@ export async function parseWithLlama(
 }
 
 /**
- * Default fallback implementation using `unpdf`.
+ * Default fast in-process implementation using `unpdf`.
  *
  * Uses `extractText(data, { mergePages: false })` which returns
  * `{ totalPages, text: string[] }` — one string per page.
  */
-export async function unpdfFallback(buffer: Buffer): Promise<ParsedPage[]> {
+export async function unpdfFast(buffer: Buffer): Promise<ParsedPage[]> {
   const { extractText, getDocumentProxy } = await import("unpdf");
 
   const pdf = await getDocumentProxy(new Uint8Array(buffer));

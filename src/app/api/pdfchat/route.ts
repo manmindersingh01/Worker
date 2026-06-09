@@ -12,6 +12,11 @@ import { retrieve } from "~/lib/rag/retrieve";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
+// Retrieval (rewrite + hybrid + rerank) plus generation can exceed the Vercel
+// Hobby default of 10s; raise to the Hobby maximum.
+export const maxDuration = 60;
+export const runtime = "nodejs";
+
 // Source chip data carried to the client as a custom data part.
 type SourceChip = {
   documentId: string;

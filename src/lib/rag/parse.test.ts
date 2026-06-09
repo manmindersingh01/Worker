@@ -1,42 +1,57 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parsePdf } from "~/lib/rag/parse";
 
 describe("parsePdf", () => {
-  it("returns llama pages renumbered 1..n on success", async () => {
+  it("uses fast pages renumbered 1..n and does NOT call ocr when text is sufficient", async () => {
+    const ocr = vi.fn(async () => [{ page: 1, markdown: "should-not-be-used" }]);
     const out = await parsePdf(Buffer.from("x"), { fileName: "a.pdf" }, {
-      parseWithLlama: async () => [
-        { page: 7, markdown: "one" },
-        { page: 9, markdown: "two" },
+      fast: async () => [
+        { page: 7, markdown: "this is a page with plenty of real text content" },
+        { page: 9, markdown: "another page with plenty of real text content too" },
       ],
-      fallback: async () => [{ page: 1, markdown: "should-not-be-used" }],
+      ocr,
     });
     expect(out).toEqual([
-      { page: 1, markdown: "one" },
-      { page: 2, markdown: "two" },
+      { page: 1, markdown: "this is a page with plenty of real text content" },
+      { page: 2, markdown: "another page with plenty of real text content too" },
+    ]);
+    expect(ocr).not.toHaveBeenCalled();
+  });
+
+  it("falls back to ocr when fast returns almost no text (< 50 chars)", async () => {
+    const out = await parsePdf(Buffer.from("x"), { fileName: "a.pdf" }, {
+      fast: async () => [
+        { page: 1, markdown: "   " },
+        { page: 2, markdown: "" },
+      ],
+      ocr: async () => [
+        { page: 3, markdown: "ocr p1" },
+        { page: 4, markdown: "ocr p2" },
+      ],
+    });
+    expect(out).toEqual([
+      { page: 1, markdown: "ocr p1" },
+      { page: 2, markdown: "ocr p2" },
     ]);
   });
 
-  it("falls back when llama throws", async () => {
+  it("falls back to ocr when fast throws", async () => {
     const out = await parsePdf(Buffer.from("x"), { fileName: "a.pdf" }, {
-      parseWithLlama: async () => {
-        throw new Error("down");
+      fast: async () => {
+        throw new Error("boom");
       },
-      fallback: async () => [{ page: 5, markdown: "fb" }],
+      ocr: async () => [{ page: 5, markdown: "ocr fb" }],
     });
-    expect(out).toEqual([{ page: 1, markdown: "fb" }]);
+    expect(out).toEqual([{ page: 1, markdown: "ocr fb" }]);
   });
 
-  it("falls back when llama returns empty", async () => {
+  it("keeps fast output when ocr also fails", async () => {
     const out = await parsePdf(Buffer.from("x"), { fileName: "a.pdf" }, {
-      parseWithLlama: async () => [],
-      fallback: async () => [
-        { page: 3, markdown: "p1" },
-        { page: 4, markdown: "p2" },
-      ],
+      fast: async () => [{ page: 1, markdown: "tiny" }],
+      ocr: async () => {
+        throw new Error("ocr down");
+      },
     });
-    expect(out).toEqual([
-      { page: 1, markdown: "p1" },
-      { page: 2, markdown: "p2" },
-    ]);
+    expect(out).toEqual([{ page: 1, markdown: "tiny" }]);
   });
 });
