@@ -111,6 +111,24 @@ export async function presignGetInline(
   );
 }
 
+/** Upload a buffer directly (server-side). Used by the demo package seed. */
+export async function putObject(
+  key: string,
+  body: Buffer,
+  contentType: string,
+  client: S3Client = getS3Client(),
+): Promise<void> {
+  const env = loadEnv();
+  await client.send(
+    new PutObjectCommand({
+      Bucket: env.S3_BUCKET_NAME,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+}
+
 export async function getObjectBuffer(
   key: string,
   client: S3Client = getS3Client(),
