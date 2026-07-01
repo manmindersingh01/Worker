@@ -13,6 +13,7 @@
     "dev": "  export NODE_OPTIONS='--max-old-space-size=8192' && next dev --turbo",
     "eval": "tsx eval/run.ts",
     "seed:readiness": "tsx scripts/readiness-demo/seed.ts",
+    "verify:readiness": "tsx scripts/readiness-demo/verify.ts",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "lint:fix": "next lint --fix",

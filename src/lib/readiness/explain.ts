@@ -42,6 +42,14 @@ function lostWeight(a: ItemAssessment): number {
 }
 
 /**
+ * Strip any list ordinal or bullet the model baked into a fix ("1. ", "2) ",
+ * "- ", "• ") so the UI's own numbering never doubles it up ("1. 1. ...").
+ */
+export function stripFixOrdinal(fix: string): string {
+  return fix.replace(/^\s*(?:\d+[.)]\s*|[-*•]\s*)+/, "").trim();
+}
+
+/**
  * Rank the items that aren't fully present by the readiness they cost, worst
  * first. A high-weight MISSING item outranks a low-weight PARTIAL one.
  */
@@ -121,8 +129,13 @@ ${gapLines}`,
 
     return {
       headline: object.headline.trim() || deterministic.headline,
-      topFixes:
-        object.topFixes.length > 0 ? object.topFixes : deterministic.topFixes,
+      topFixes: (object.topFixes.length > 0
+        ? object.topFixes
+        : deterministic.topFixes
+      )
+        .map(stripFixOrdinal)
+        .filter((f) => f.length > 0)
+        .slice(0, 3),
     };
   } catch {
     // LLM unavailable or failed - the deterministic summary is a fine answer.
