@@ -12,6 +12,8 @@ Two modes share one app:
 
 **Text chat.** A second route for general questions with no document grounding, backed by Postgres-stored conversation history.
 
+**Readiness check.** A proactive layer over the same retrieval engine: instead of waiting for a question, it audits a document set against a jurisdiction blueprint (first: India / CDSCO) and returns a deterministic readiness score, a per-category breakdown, and a gap list where every finding links to its exact source page. See [Readiness check](#readiness-check-srclibreadiness).
+
 Sessions and messages persist in Postgres (PDF-chat turns included). Auth is Discord OAuth via NextAuth. Each account starts with 300 credits, deducted per turn by input length.
 
 ## Architecture
@@ -58,6 +60,39 @@ Vectors are isolated per user via a Pinecone namespace (`user:<userId>`), and ea
 ### Credits
 
 Cost per turn = `inputLength / 4` (rough token approximation). Checked before the model call, deducted after. A 402 `INSUFFICIENT_CREDITS` surfaces in the UI as a toast. Credit bookkeeping is non-fatal — it never blocks the stream.
+
+## Readiness check (`src/lib/readiness/`)
+
+The RAG app above is reactive: it answers what you ask and has no opinion on whether a document set is complete.
+The readiness feature adds a proactive layer on top of the exact same retrieval engine.
+Instead of waiting for a question, it checks a document set against a jurisdiction blueprint (the "definition of done") and reports how ready the package is, what is missing, and why - with a citation for every finding.
+
+The first blueprint is India (CDSCO): the essential documents for a new-drug clinical trial under the New Drugs and Clinical Trials Rules, 2019.
+Adding another jurisdiction is a matter of authoring one more `Blueprint` file; nothing else in the pipeline changes.
+
+```
+POST /api/readiness { sessionId }
+  → LangGraph coordinator (src/lib/readiness/graph.ts)
+    → load:     resolve blueprint + document scope, log the run start
+    → assess:   for EACH blueprint item (bounded concurrency):
+                  retrieve() on the item's query  →  grounded LLM judge
+                  → PRESENT | PARTIAL | MISSING | NEEDS_REVIEW
+                  citations verified against retrieved chunks (no invented pages)
+    → tally:    deterministic weighted score, overall + per-category (plain math)
+    → explain:  rank gaps by readiness cost → headline + top-3 fixes
+    → finalize: persist score + summary
+```
+
+- **Honesty over optimism.** Weak or ambiguous evidence yields `NEEDS_REVIEW`, not a guess, and any `PRESENT`/`PARTIAL` verdict must be backed by a citation that verifies against a real retrieved chunk - otherwise it is downgraded. That provenance is what makes the output audit-ready.
+- **Deterministic scoring.** The percentage is weight-normalised math (`src/lib/readiness/score.ts`), so the same verdicts always produce the same number. `NEEDS_REVIEW` earns no credit but stays in the denominator: unverified is not the same as complete.
+- **Audit trail.** The run row, its per-item verdicts, and the coordinator's per-node events (`ReadinessRun` / `ReadinessItemResult` / `ReadinessEvent`) are a durable record of exactly what the app did.
+- **Dashboard.** The workspace right pane toggles Chat / Readiness. The dashboard shows a score gauge, a per-category breakdown, and a gap list; clicking a gap jumps the shared PDF viewer to the exact cited page (`#page=N`).
+
+### Demo package
+
+`npm run seed:readiness` builds a realistic (fictional) CDSCO site package as real PDFs, uploads them, and runs the real ingestion pipeline against a dedicated demo user, so the whole flow works with no live uploading.
+It requires the readiness migration to be applied and the same env as the app.
+The package is deliberately incomplete, so a check lands on a grounded "not ready" score with India-specific gaps (CTRI registration, audio-visual consent, injury/death compensation, local-language consent, insurance).
 
 ## Environment variables
 
@@ -108,10 +143,16 @@ cp .env.example .env        # fill in the variables above
 
 Open the app, sign in with Discord, create a PDF chat session, and upload a document. Ingestion progress is shown live; once the document is READY you can ask grounded questions.
 
+Optionally, seed the pre-loaded CDSCO readiness demo (needs the app env + the readiness migration applied):
+
+```bash
+npm run seed:readiness      # prints demo credentials + the /pdfchat/<sessionId> to open
+```
+
 ## Testing & evaluation
 
 ```bash
-npm test        # vitest unit suite (RAG pipeline: chunk, embed, dense, sparse, rrf, rerank, citations, retrieve, …)
+npm test        # vitest unit suite (RAG pipeline + readiness: blueprint, score, assessor, explainer, coordinator, serialize)
 npm run eval    # retrieval eval harness over eval/golden.json (recall@k, MRR)
 ```
 
@@ -119,4 +160,4 @@ The eval harness (`eval/`) scores retrieval against a golden set. A live baselin
 
 ## Tech stack
 
-Next.js 15 (App Router), TypeScript, Prisma 6 + PostgreSQL, NextAuth (Discord), Inngest (durable ingestion), Pinecone (dense vectors), Postgres FTS (sparse), OpenAI (`text-embedding-3-large` + `gpt-4o-mini`), Cohere (rerank), LlamaParse + unpdf (parsing), Vercel AI SDK (streaming), uploadthing, Tailwind, Radix UI.
+Next.js 15 (App Router), TypeScript, Prisma 6 + PostgreSQL, NextAuth (Discord), Inngest (durable ingestion), Pinecone (dense vectors), Postgres FTS (sparse), OpenAI (`text-embedding-3-large` + `gpt-4o-mini`), Cohere (rerank), LlamaParse + unpdf (parsing), LangGraph (readiness coordinator), Vercel AI SDK (streaming), Recharts (dashboard), uploadthing, Tailwind, Radix UI.
