@@ -7,17 +7,24 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-function loadEnv() {
+type S3Env = {
+  AWS_REGION?: string;
+  AWS_ACCESS_KEY_ID?: string;
+  AWS_SECRET_ACCESS_KEY?: string;
+  S3_BUCKET_NAME?: string;
+};
+
+function loadEnv(): S3Env {
   // require lazily so importing this module does not trigger env validation
   // (e.g. in tests that only exercise the pure key builder).
-
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require("~/server/env").env as {
-    AWS_REGION?: string;
-    AWS_ACCESS_KEY_ID?: string;
-    AWS_SECRET_ACCESS_KEY?: string;
-    S3_BUCKET_NAME?: string;
-  };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("~/server/env").env as S3Env;
+  } catch {
+    // No CommonJS require in an ESM/tsx context (e.g. the readiness demo seed).
+    // The values are already loaded onto process.env, so read them directly.
+    return process.env as S3Env;
+  }
 }
 
 let s3Singleton: S3Client | undefined;
