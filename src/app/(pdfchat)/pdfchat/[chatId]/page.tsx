@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import React from "react";
 import ChatWorkspace from "~/components/chatWorkspace";
 import { db } from "~/server/db";
-import { presignGet } from "~/lib/s3";
+import { presignGetInline } from "~/lib/s3";
 
 type Params = Promise<{ chatId: string }>;
 const ChatPage = async ({ params }: { params: Params }) => {
@@ -26,12 +26,13 @@ const ChatPage = async ({ params }: { params: Params }) => {
     pdfUrlArray.push(pdf.url);
   });
 
-  // `d.url` holds the S3 object key; presign a short-lived GET url for viewing.
+  // `d.url` holds the S3 object key; presign a short-lived inline GET url so the
+  // viewer can render the PDF and deep-link to a cited page (#page=N).
   const documents = await Promise.all(
     (currentPdf?.documents ?? []).map(async (d) => ({
       id: d.id,
       name: d.name,
-      viewUrl: await presignGet(d.url),
+      viewUrl: await presignGetInline(d.url),
       status: d.status,
     })),
   );

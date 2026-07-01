@@ -7,6 +7,7 @@ import {
   FileText,
   Loader2,
   Hash,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -22,26 +23,35 @@ import { useDocumentViewer } from "~/components/documentViewerContext";
 export type ViewerDoc = {
   id: string;
   name: string;
-  // A presigned, short-lived GET url for the PDF (not the S3 key).
+  // A presigned, short-lived GET url for the PDF (not the S3 key). When served
+  // inline (see presignGetInline) the browser renders it natively and honours
+  // #page=N.
   viewUrl: string;
   status?: "PROCESSING" | "READY" | "FAILED";
 };
 
+/** Google Docs viewer - the compatibility fallback (cannot deep-link a page). */
 function gviewSrc(url: string) {
   return `https://docs.google.com/gview?url=${encodeURIComponent(
     url,
   )}&embedded=true`;
 }
 
+/** Native browser PDF viewer, deep-linked to a page when one is requested. */
+function nativeSrc(url: string, page: number | null) {
+  const hash = page ? `#page=${page}&view=FitH` : "#view=FitH";
+  return `${url}${hash}`;
+}
+
 /* ---------------------------------------------------------------------------
    DocumentViewer — multi-document embedded PDF viewer.
    - A tab switcher (driven by the session's documents) selects which document
-     is shown in the gview iframe.
-   - Page jump: subscribes to the DocumentViewer context. A citation chip
-     click switches to the matching document and flashes the target page
-     number. The embedded Google Docs viewer cannot deep-link to a page, so we
-     are explicit about that (tooltip) and only switch the document + surface
-     the page rather than pretending to scroll.
+     is shown.
+   - Page jump: subscribes to the DocumentViewer context. A citation / gap click
+     switches to the matching document and navigates the native PDF viewer to
+     the exact page via #page=N (the iframe is re-mounted so the browser lands
+     on that page). A compatibility toggle falls back to the Google Docs viewer
+     for environments where the native viewer misbehaves.
    ------------------------------------------------------------------------- */
 const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
   const { target } = useDocumentViewer();
@@ -51,8 +61,10 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
   );
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  // The page a citation asked for, shown as a badge until dismissed.
-  const [pendingPage, setPendingPage] = React.useState<number | null>(null);
+  // The page a citation asked for. Drives the #page deep-link and the badge.
+  const [targetPage, setTargetPage] = React.useState<number | null>(null);
+  // "native" uses the browser PDF viewer (deep-linkable); "compat" uses gview.
+  const [mode, setMode] = React.useState<"native" | "compat">("native");
 
   // Keep a valid active document as the list changes.
   React.useEffect(() => {
@@ -65,7 +77,7 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
     );
   }, [documents]);
 
-  // Honour page-jump requests from citation chips.
+  // Honour page-jump requests from citation / gap clicks.
   React.useEffect(() => {
     if (!target) return;
     const match =
@@ -76,14 +88,10 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
           d.name.trim().toLowerCase() === target.docName.trim().toLowerCase(),
       );
     if (match) {
-      setActiveId((prev) => {
-        if (prev !== match.id) {
-          setLoading(true);
-          setError(false);
-        }
-        return match.id;
-      });
-      setPendingPage(target.page);
+      setActiveId(match.id);
+      setLoading(true);
+      setError(false);
+      setTargetPage(target.page);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.nonce]);
@@ -109,6 +117,12 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
     );
   }
 
+  const src = active
+    ? mode === "compat"
+      ? gviewSrc(active.viewUrl)
+      : nativeSrc(active.viewUrl, targetPage)
+    : "";
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full flex-col rounded-xl border border-border bg-card/60 shadow-paper">
@@ -121,7 +135,7 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
                 setActiveId(v);
                 setLoading(true);
                 setError(false);
-                setPendingPage(null);
+                setTargetPage(null);
               }}
               className="min-w-0 flex-1"
             >
@@ -147,27 +161,47 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
             </div>
           )}
 
-          {/* Pending page indicator (honest about iframe limitations) */}
-          {pendingPage != null && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setPendingPage(null)}
-                  className="flex shrink-0 animate-fade-in items-center gap-1 rounded-full border border-accent/50 bg-accent-soft px-2 py-0.5 font-mono text-[11px] font-medium text-accent-foreground"
-                  aria-label={`Citation points to page ${pendingPage}. Dismiss.`}
-                >
-                  <Hash className="h-3 w-3 text-accent" aria-hidden />
-                  page {pendingPage}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-[16rem]">
-                The cited passage is on page {pendingPage}. The embedded viewer
-                can&apos;t scroll to a page automatically — use the viewer&apos;s
-                own page control to jump there.
-              </TooltipContent>
-            </Tooltip>
+          {/* Page badge - the citation landed here. */}
+          {targetPage != null && (
+            <button
+              type="button"
+              onClick={() => setTargetPage(null)}
+              className="flex shrink-0 animate-fade-in items-center gap-1 rounded-full border border-accent/50 bg-accent-soft px-2 py-0.5 font-mono text-[11px] font-medium text-accent-foreground"
+              aria-label={`Jumped to page ${targetPage}. Dismiss.`}
+            >
+              <Hash className="h-3 w-3 text-accent" aria-hidden />
+              page {targetPage}
+            </button>
           )}
+
+          {/* Compatibility toggle: native <-> Google Docs viewer. */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode((m) => (m === "native" ? "compat" : "native"));
+                  setLoading(true);
+                  setError(false);
+                }}
+                className={cn(
+                  "grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  mode === "compat"
+                    ? "bg-accent-soft text-accent"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+                aria-label="Toggle compatibility viewer"
+                aria-pressed={mode === "compat"}
+              >
+                <MonitorSmartphone className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[15rem]">
+              {mode === "native"
+                ? "Trouble viewing? Switch to the compatibility viewer (can't jump to a page)."
+                : "Compatibility viewer on. Switch back to jump to cited pages."}
+            </TooltipContent>
+          </Tooltip>
 
           {active && (
             <Tooltip>
@@ -231,9 +265,10 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
                   </div>
                 )}
                 <iframe
-                  // Re-mount per document so onLoad fires on switch.
-                  key={active.id}
-                  src={gviewSrc(active.viewUrl)}
+                  // Re-mount per document AND per requested page so the native
+                  // viewer reloads and lands on the cited page.
+                  key={`${active.id}:${mode}:${targetPage ?? "top"}`}
+                  src={src}
                   className={cn(
                     "h-full w-full border-0 transition-opacity",
                     loading ? "opacity-0" : "opacity-100",

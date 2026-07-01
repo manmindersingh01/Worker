@@ -88,6 +88,29 @@ export async function presignGet(
   );
 }
 
+/**
+ * Presign a GET url that browsers render inline as a PDF. Setting the response
+ * content-type + inline disposition means an <iframe src="...#page=N"> lands on
+ * the cited page using the browser's own PDF viewer - which is what makes the
+ * "jump to the exact page" citation click actually work.
+ */
+export async function presignGetInline(
+  key: string,
+  client: S3Client = getS3Client(),
+): Promise<string> {
+  const env = loadEnv();
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET_NAME,
+      Key: key,
+      ResponseContentType: "application/pdf",
+      ResponseContentDisposition: "inline",
+    }),
+    { expiresIn: 3600 },
+  );
+}
+
 export async function getObjectBuffer(
   key: string,
   client: S3Client = getS3Client(),
