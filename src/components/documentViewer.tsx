@@ -63,6 +63,9 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
   const [error, setError] = React.useState(false);
   // The page a citation asked for. Drives the #page deep-link and the badge.
   const [targetPage, setTargetPage] = React.useState<number | null>(null);
+  // Monotonic id of the last honoured jump. Part of the iframe key so that
+  // re-requesting the SAME page still forces a remount (and a fresh onLoad).
+  const [jumpNonce, setJumpNonce] = React.useState(0);
   // "native" uses the browser PDF viewer (deep-linkable); "compat" uses gview.
   const [mode, setMode] = React.useState<"native" | "compat">("native");
 
@@ -92,6 +95,10 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
       setLoading(true);
       setError(false);
       setTargetPage(target.page);
+      // Bump on every honoured jump so re-clicking the same page remounts the
+      // iframe; without this the key is unchanged and onLoad never clears the
+      // loading overlay.
+      setJumpNonce(target.nonce);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.nonce]);
@@ -265,9 +272,10 @@ const DocumentViewer = ({ documents }: { documents: ViewerDoc[] }) => {
                   </div>
                 )}
                 <iframe
-                  // Re-mount per document AND per requested page so the native
-                  // viewer reloads and lands on the cited page.
-                  key={`${active.id}:${mode}:${targetPage ?? "top"}`}
+                  // Re-mount per document, per mode, and per jump so the native
+                  // viewer reloads and lands on the cited page - even when the
+                  // same page is requested twice.
+                  key={`${active.id}:${mode}:${targetPage ?? "top"}:${jumpNonce}`}
                   src={src}
                   className={cn(
                     "h-full w-full border-0 transition-opacity",
