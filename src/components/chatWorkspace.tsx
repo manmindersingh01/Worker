@@ -7,10 +7,12 @@ import {
   BookOpen,
   Library,
   MessagesSquare,
+  ShieldCheck,
 } from "lucide-react";
 import DocumentViewer, { type ViewerDoc } from "~/components/documentViewer";
 import PdfChatBox from "~/components/pdfChatBox";
 import DocumentManager from "~/components/documentManager";
+import ReadinessPanel from "~/components/readiness/readinessPanel";
 import { DocumentViewerProvider } from "~/components/documentViewerContext";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -24,13 +26,17 @@ type Props = {
 
 /* ---------------------------------------------------------------------------
    ChatWorkspace — client shell that holds the document scope and composes the
-   PDF viewer + a collapsible DocumentManager + the chat box.
+   PDF viewer + a collapsible DocumentManager + the right-hand work surface.
+
+   The right surface switches between two modes:
+   - Chat: ask the documents questions (reactive).
+   - Readiness: audit the package against a jurisdiction blueprint (proactive).
+   Both share the same PDF viewer on the left, so a chat citation or a readiness
+   gap both jump the viewer to the exact page.
 
    Layout:
-   - lg+ : three panes side by side (viewer | manager | chat).
-   - < lg: a tab bar switches between Reader / Files / Chat so each surface
-           gets the full viewport and the chat composer stays reachable.
-   The scope (selected documentIds) flows from the manager into <PdfChatBox />.
+   - lg+ : viewer | (manager + [Chat/Readiness] surface).
+   - < lg: a tab bar switches Reader / Files / Chat / Readiness.
    ------------------------------------------------------------------------- */
 /** Track whether the viewport is at/above the lg breakpoint (1024px). */
 function useIsDesktop() {
@@ -45,9 +51,12 @@ function useIsDesktop() {
   return isDesktop;
 }
 
+type RightView = "chat" | "readiness";
+
 const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
   const [documentIds, setDocumentIds] = React.useState<string[]>([]);
   const [panelOpen, setPanelOpen] = React.useState(true);
+  const [rightView, setRightView] = React.useState<RightView>("chat");
   const isDesktop = useIsDesktop();
 
   // Prefer the real Document records (these carry the ids/names citations
@@ -66,10 +75,41 @@ const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
       ? `scope · ${documentIds.length} document${documentIds.length === 1 ? "" : "s"}`
       : "scope · all documents";
 
-  // Shared chat node (rendered once per breakpoint via CSS, not duplicated).
-  const chat = (
+  const chatSurface = (
+    <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card/60">
+      <PdfChatBox chatId={chatId} documentIds={documentIds} />
+    </div>
+  );
+
+  const readinessSurface = (
+    <div className="min-h-0 flex-1 overflow-hidden">
+      <ReadinessPanel sessionId={chatId} className="h-full" />
+    </div>
+  );
+
+  // Desktop segmented control: Chat | Readiness.
+  const segmented = (
+    <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-0.5">
+      <SegButton
+        active={rightView === "chat"}
+        onClick={() => setRightView("chat")}
+        icon={<MessagesSquare className="h-3.5 w-3.5" aria-hidden />}
+      >
+        Chat
+      </SegButton>
+      <SegButton
+        active={rightView === "readiness"}
+        onClick={() => setRightView("readiness")}
+        icon={<ShieldCheck className="h-3.5 w-3.5" aria-hidden />}
+      >
+        Readiness
+      </SegButton>
+    </div>
+  );
+
+  const desktopMain = (
     <div className="flex h-full min-w-0 flex-col">
-      <div className="mb-2 hidden items-center gap-2 lg:flex">
+      <div className="mb-2 flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
@@ -83,13 +123,12 @@ const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
             <PanelLeftOpen className="h-4 w-4" />
           )}
         </Button>
-        <span className="font-mono text-[11px] text-muted-foreground">
+        {segmented}
+        <span className="ml-auto truncate font-mono text-[11px] text-muted-foreground">
           {scopeLabel}
         </span>
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card/60">
-        <PdfChatBox chatId={chatId} documentIds={documentIds} />
-      </div>
+      {rightView === "chat" ? chatSurface : readinessSurface}
     </div>
   );
 
@@ -119,62 +158,104 @@ const ChatWorkspace = ({ chatId, pdfUrls, documents }: Props) => {
                 </div>
               </div>
 
-              <div className="min-w-0 flex-1 overflow-hidden p-3">{chat}</div>
+              <div className="min-w-0 flex-1 overflow-hidden p-3">
+                {desktopMain}
+              </div>
             </div>
           </div>
         ) : (
           /* ---------- Mobile / tablet: tabbed ---------- */
           <Tabs defaultValue="chat" className="flex h-full flex-col">
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-            <TabsList className="h-9">
-              <TabsTrigger value="reader" className="gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" aria-hidden />
-                Reader
-              </TabsTrigger>
-              <TabsTrigger value="files" className="gap-1.5">
-                <Library className="h-3.5 w-3.5" aria-hidden />
-                Files
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="gap-1.5">
-                <MessagesSquare className="h-3.5 w-3.5" aria-hidden />
-                Chat
-              </TabsTrigger>
-            </TabsList>
-            <span className="hidden font-mono text-[10px] text-muted-foreground sm:inline">
-              {scopeLabel}
-            </span>
-          </div>
+            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+              <TabsList className="h-9">
+                <TabsTrigger value="reader" className="gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                  Reader
+                </TabsTrigger>
+                <TabsTrigger value="files" className="gap-1.5">
+                  <Library className="h-3.5 w-3.5" aria-hidden />
+                  Files
+                </TabsTrigger>
+                <TabsTrigger value="chat" className="gap-1.5">
+                  <MessagesSquare className="h-3.5 w-3.5" aria-hidden />
+                  Chat
+                </TabsTrigger>
+                <TabsTrigger value="readiness" className="gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                  Readiness
+                </TabsTrigger>
+              </TabsList>
+              <span className="hidden font-mono text-[10px] text-muted-foreground sm:inline">
+                {scopeLabel}
+              </span>
+            </div>
 
-          <TabsContent
-            value="reader"
-            className="min-h-0 flex-1 overflow-hidden p-3 data-[state=inactive]:hidden"
-          >
-            <DocumentViewer documents={viewerDocs} />
-          </TabsContent>
+            <TabsContent
+              value="reader"
+              className="min-h-0 flex-1 overflow-hidden p-3 data-[state=inactive]:hidden"
+            >
+              <DocumentViewer documents={viewerDocs} />
+            </TabsContent>
 
-          <TabsContent
-            value="files"
-            className="min-h-0 flex-1 overflow-hidden p-3 data-[state=inactive]:hidden"
-          >
-            <DocumentManager
-              sessionId={chatId}
-              onScopeChange={setDocumentIds}
-              className="h-full"
-            />
-          </TabsContent>
+            <TabsContent
+              value="files"
+              className="min-h-0 flex-1 overflow-hidden p-3 data-[state=inactive]:hidden"
+            >
+              <DocumentManager
+                sessionId={chatId}
+                onScopeChange={setDocumentIds}
+                className="h-full"
+              />
+            </TabsContent>
 
-          <TabsContent
-            value="chat"
-            forceMount
-            className="min-h-0 flex-1 overflow-hidden p-3 data-[state=inactive]:hidden"
-          >
-            {chat}
-          </TabsContent>
+            <TabsContent
+              value="chat"
+              forceMount
+              className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 data-[state=inactive]:hidden"
+            >
+              {chatSurface}
+            </TabsContent>
+
+            <TabsContent
+              value="readiness"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 data-[state=inactive]:hidden"
+            >
+              {readinessSurface}
+            </TabsContent>
           </Tabs>
         )}
       </div>
     </DocumentViewerProvider>
   );
 };
+
+function SegButton({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active
+          ? "bg-card text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
 
 export default ChatWorkspace;
