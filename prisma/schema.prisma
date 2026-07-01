@@ -72,15 +72,16 @@ model ChatSession {
 }
 
 model PdfChatSession {
-  id        String     @id @default(cuid())
-  title     String?
-  userId    String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  messages  Message[]
-  User      User?      @relation(fields: [userId], references: [id])
-  pdfs      PDF[]      @relation("PDFToPdfChatSession")
-  documents Document[]
+  id            String         @id @default(cuid())
+  title         String?
+  userId        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  messages      Message[]
+  User          User?          @relation(fields: [userId], references: [id])
+  pdfs          PDF[]          @relation("PDFToPdfChatSession")
+  documents     Document[]
+  readinessRuns ReadinessRun[]
 }
 
 model PDF {
@@ -151,4 +152,83 @@ model Chunk {
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
+}
+
+enum ReadinessRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ReadinessItemStatus {
+  PRESENT
+  PARTIAL
+  MISSING
+  NEEDS_REVIEW
+}
+
+/// One readiness assessment of a session's documents against a jurisdiction
+/// blueprint. The run row, its item results, and its events together form the
+/// durable audit trail; the LangGraph coordinator writes to them as it advances
+/// through its nodes (load -> assess -> score -> explain -> finalize).
+model ReadinessRun {
+  id               String                @id @default(cuid())
+  sessionId        String
+  userId           String
+  jurisdiction     String // e.g. "IN-CDSCO"
+  blueprintId      String // e.g. "cdsco-ndct-2019"
+  blueprintVersion String
+  status           ReadinessRunStatus    @default(PENDING)
+  score            Int? // 0-100, deterministic (null until scored)
+  maxWeight        Int? // sum of item weights (score denominator)
+  earnedWeight     Float? // weighted credit earned (score numerator)
+  headline         String? // one-line "not ready: missing X, Y, Z"
+  topFixes         Json? // ordered next actions (string[])
+  categoryScores   Json? // per-category rollup for the dashboard chart
+  error            String?
+  createdAt        DateTime              @default(now())
+  startedAt        DateTime?
+  completedAt      DateTime?
+  session          PdfChatSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  items            ReadinessItemResult[]
+  events           ReadinessEvent[]
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+/// The assessor's verdict for a single blueprint item. `citations` are verified
+/// against the retrieved chunks, so each carries a documentId + page the UI can
+/// jump straight to.
+model ReadinessItemResult {
+  id             String              @id @default(cuid())
+  runId          String
+  itemKey        String
+  category       String
+  title          String
+  status         ReadinessItemStatus
+  weight         Int
+  confidence     Float // 0-1 from the assessor
+  rationale      String // grounded reasoning for the verdict
+  recommendation String? // next action when not fully present
+  citations      Json // [{ documentId, docName, page, snippet }]
+  createdAt      DateTime            @default(now())
+  run            ReadinessRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+/// Append-only log of the coordinator's steps for one run - the audit trail a
+/// regulated buyer can inspect to see exactly what the app did and when.
+model ReadinessEvent {
+  id        String       @id @default(cuid())
+  runId     String
+  node      String // coordinator node that emitted the event
+  message   String
+  data      Json?
+  createdAt DateTime     @default(now())
+  run       ReadinessRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
 }
