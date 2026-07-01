@@ -7,7 +7,12 @@ import {
   DEFAULT_BLUEPRINT_ID,
   getBlueprint,
 } from "~/lib/readiness/blueprints";
-import { createRun, getLatestRun, getRun } from "~/lib/readiness/persist";
+import {
+  createRun,
+  failStaleRuns,
+  getLatestRun,
+  getRun,
+} from "~/lib/readiness/persist";
 import { runReadiness } from "~/lib/readiness/graph";
 import { serializeRun } from "~/lib/readiness/serialize";
 
@@ -94,12 +99,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Atomic credit debit: conditional update avoids the TOCTOU overdraft race.
-    const debit = await db.user.updateMany({
-      where: { id: userId, credits: { gte: READINESS_RUN_COST } },
-      data: { credits: { decrement: READINESS_RUN_COST } },
+    // Gate on credits up front (a run must be affordable), but do NOT debit yet:
+    // charging only after a successful run means a failed or timed-out run never
+    // burns credits, so there is nothing to refund on the error path.
+    const account = await db.user.findUnique({
+      where: { id: userId },
+      select: { credits: true },
     });
-    if (debit.count === 0) {
+    if ((account?.credits ?? 0) < READINESS_RUN_COST) {
       return NextResponse.json(
         {
           error: "INSUFFICIENT_CREDITS",
@@ -108,6 +115,9 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     }
+
+    // Clear any zombie runs from a previously killed request before starting.
+    await failStaleRuns(sessionId, userId);
 
     const { id: runId } = await createRun({
       sessionId,
@@ -129,9 +139,18 @@ export async function POST(req: NextRequest) {
               { rewrite: (_history, latest) => Promise.resolve(latest) },
             ),
         },
-        concurrency: 5,
+        // Higher fan-out keeps a full 16-item run comfortably inside the 60s
+        // request budget (~2 waves of retrieve + judge).
+        concurrency: 8,
       },
     );
+
+    // Debit only now that the run has completed and produced a result. The
+    // conditional guard avoids an overdraft if two runs raced the gate.
+    await db.user.updateMany({
+      where: { id: userId, credits: { gte: READINESS_RUN_COST } },
+      data: { credits: { decrement: READINESS_RUN_COST } },
+    });
 
     const run = await getRun(runId, userId);
     if (!run) {

@@ -93,6 +93,33 @@ export const prismaPersistence: ReadinessPersistence = {
   },
 };
 
+/**
+ * Mark any of a session's runs that are stuck in PENDING/RUNNING past a timeout
+ * as FAILED. A run executes inline in one request, so if that request is killed
+ * (e.g. hits the serverless time limit) no catch fires and the row would sit in
+ * RUNNING forever. Called before starting a new run so zombies never linger.
+ */
+export async function failStaleRuns(
+  sessionId: string,
+  userId: string,
+  olderThanMs = 120_000,
+): Promise<void> {
+  const cutoff = new Date(Date.now() - olderThanMs);
+  await db.readinessRun.updateMany({
+    where: {
+      sessionId,
+      userId,
+      status: { in: ["PENDING", "RUNNING"] },
+      createdAt: { lt: cutoff },
+    },
+    data: {
+      status: "FAILED",
+      error: "Run did not complete (timed out or interrupted).",
+      completedAt: new Date(),
+    },
+  });
+}
+
 /** Create a PENDING run row up front so the API can return its id immediately. */
 export async function createRun(input: {
   sessionId: string;

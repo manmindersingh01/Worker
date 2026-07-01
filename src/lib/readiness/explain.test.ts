@@ -83,6 +83,24 @@ describe("deterministicSummary", () => {
     expect(s.topFixes).toContain("Add the insurance policy.");
     expect(s.topFixes.length).toBeLessThanOrEqual(3);
   });
+
+  it("only names genuinely missing items after 'missing'", () => {
+    // One MISSING item alongside a PARTIAL and a NEEDS_REVIEW one: the headline
+    // must not label the partial/needs-review items as missing.
+    const assessments = [
+      assess("insurance", "MISSING", "Add insurance."),
+      assess("protocol", "PARTIAL", "Finalise the protocol."),
+      assess("gcp", "NEEDS_REVIEW"),
+      assess("ib", "PRESENT"),
+    ];
+    const score = scoreReadiness(bp, assessments);
+    const gaps = rankGaps(assessments);
+    const s = deterministicSummary({ blueprint: bp, score, gaps });
+    const h = s.headline.toLowerCase();
+    expect(h).toContain("missing trial insurance");
+    expect(h).not.toContain("protocol"); // PARTIAL - not "missing"
+    expect(h).not.toContain("gcp"); // NEEDS_REVIEW - not "missing"
+  });
 });
 
 describe("explainGaps", () => {

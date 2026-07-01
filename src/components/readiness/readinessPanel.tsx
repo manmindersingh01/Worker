@@ -40,6 +40,9 @@ const ReadinessPanel = ({ sessionId, className }: Props) => {
   const [running, setRunning] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [step, setStep] = React.useState(0);
+  // Once a run has been started/finished in this session, a late-arriving
+  // initial GET must not overwrite the fresher result.
+  const supersededRef = React.useRef(false);
 
   // Load the latest run for this session.
   React.useEffect(() => {
@@ -48,7 +51,7 @@ const ReadinessPanel = ({ sessionId, className }: Props) => {
       try {
         const res = await fetch(`/api/readiness?sessionId=${sessionId}`);
         const data = (await res.json()) as { run: ClientReadinessRun | null };
-        if (!cancelled) setRun(data.run);
+        if (!cancelled && !supersededRef.current) setRun(data.run);
       } catch {
         /* first-load failure is non-fatal - user can still run a check */
       } finally {
@@ -72,6 +75,7 @@ const ReadinessPanel = ({ sessionId, className }: Props) => {
   }, [running]);
 
   const runCheck = async () => {
+    supersededRef.current = true;
     setRunning(true);
     setError(null);
     try {

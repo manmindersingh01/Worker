@@ -67,15 +67,19 @@ export function deterministicSummary(input: ExplainInput): GapSummary {
     };
   }
 
+  // Only name items that are genuinely MISSING after the word "missing";
+  // otherwise the headline would assert that partial/needs-review documents are
+  // absent when they are actually present-but-incomplete.
   const missing = gaps.filter((g) => g.status === "MISSING");
-  const named = (missing.length >= 2 ? missing : gaps)
+  const names = (missing.length > 0 ? missing : gaps)
     .slice(0, 3)
-    .map((g) => g.title.toLowerCase());
+    .map((g) => g.title.toLowerCase())
+    .join(", ");
 
   const lead =
     missing.length > 0
-      ? `Not ready (${score.score}%): missing ${named.join(", ")}`
-      : `Not ready (${score.score}%): gaps in ${named.join(", ")}`;
+      ? `Not ready (${score.score}%): missing ${names}`
+      : `Not ready (${score.score}%): gaps in ${names}`;
 
   const topFixes: string[] = [];
   for (const g of gaps) {
