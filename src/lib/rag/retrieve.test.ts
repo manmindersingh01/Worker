@@ -66,4 +66,36 @@ describe("retrieve", () => {
     expect(r.weakContext).toBe(false);
     expect(r.chunks[0].page).toBe(2);
   });
+
+  it("survives a failing dense arm and still returns sparse hits", async () => {
+    // Regression: a throwing dense (vector-store) arm must not discard the
+    // sparse arm's results - retrieval degrades to lexical, not to nothing.
+    const deps = {
+      rewrite: async (_h: any, l: string) => l,
+      dense: async () => {
+        throw new Error("pinecone index not found");
+      },
+      sparse: async () => [{ chunkId: "s1", rank: 0 }],
+      hydrate: async (ids: string[]) =>
+        new Map(
+          ids.map((id) => [
+            id,
+            {
+              chunkId: id,
+              documentId: "d",
+              docName: "Doc",
+              page: 5,
+              content: id,
+              score: 0,
+            },
+          ]),
+        ),
+      rerank: async (_q: string, docs: any[]) =>
+        docs.map((d) => ({ ...d, rerankScore: 0.8 })),
+    };
+    const r = await retrieve({ query: "q", history: [], userId: "u" }, deps as any);
+    expect(r.chunks.length).toBe(1);
+    expect(r.chunks[0].chunkId).toBe("s1");
+    expect(r.chunks[0].page).toBe(5);
+  });
 });
