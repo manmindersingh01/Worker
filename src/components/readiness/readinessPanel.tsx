@@ -11,7 +11,6 @@ import {
   MapPin,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { cn } from "~/lib/utils";
 import { ReadinessGauge } from "./readinessGauge";
 import { CategoryChart } from "./categoryChart";
@@ -145,7 +144,10 @@ const ReadinessPanel = ({ sessionId, className }: Props) => {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* Plain overflow-y container: Radix ScrollArea wraps content in a
+          display:table element that sizes to content, so the dashboard would
+          not wrap to a narrow pane. This lets the content respect the width. */}
+      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="space-y-4 p-4">
           {error && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -304,7 +306,7 @@ const ReadinessPanel = ({ sessionId, className }: Props) => {
             </>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
