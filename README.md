@@ -2,35 +2,35 @@
 
 Chat with your PDFs. Upload one or more documents, ask questions, and get answers grounded in the actual content through a production-grade retrieval-augmented generation (RAG) pipeline with verified inline citations. A separate text-chat mode talks to a general model without document grounding.
 
-Live: https://worker-mocha.vercel.app
+Live: https://rag.devsingh.live
 
 ## What it does
 
 Two modes share one app:
 
-**PDF chat.** Upload PDFs into a chat session. Ingestion runs as a durable background job (Inngest) that parses, chunks, contextualizes, embeds, and indexes every page. When you ask a question, a hybrid retriever (dense + sparse) fuses and reranks candidates, gates on confidence, and streams a grounded answer with `[DocName p.N]` citations that are verified against the retrieved chunks.
+**PDF chat.** Upload PDFs into a chat session. Ingestion runs inline on upload — it parses, chunks, embeds, and indexes every page. When you ask a question, a hybrid retriever (dense + sparse) fuses and reranks candidates, gates on confidence, and streams a grounded answer with `[DocName p.N]` citations that are verified against the retrieved chunks.
 
 **Text chat.** A second route for general questions with no document grounding, backed by Postgres-stored conversation history.
 
 **Readiness check.** A proactive layer over the same retrieval engine: instead of waiting for a question, it audits a document set against a jurisdiction blueprint (first: India / CDSCO) and returns a deterministic readiness score, a per-category breakdown, and a gap list where every finding links to its exact source page. See [Readiness check](#readiness-check-srclibreadiness).
 
-Sessions and messages persist in Postgres (PDF-chat turns included). Auth is Discord OAuth via NextAuth. Each account starts with 300 credits, deducted per turn by input length.
+Sessions and messages persist in Postgres (PDF-chat turns included). Auth is email/password (NextAuth Credentials provider); a shared demo login is available. Each account starts with 300 credits, deducted per turn by input length (a readiness run costs a fixed 15).
 
 ## Architecture
 
-### Ingestion (durable, `src/inngest/ingest.ts`)
+### Ingestion (`src/lib/rag/ingestDocument.ts`)
 
-Triggered after upload; each step is independently retried by Inngest so a transient failure never restarts the whole job.
+Runs inline on upload (`src/app/api/upload/route.tsx` awaits it; ~3-5s for a normal PDF) as one continuous unit of work. On any failure the document is marked `FAILED` with a stage-labelled error; it is idempotent via deterministic chunk ids, so a re-run is safe. (An Inngest handler wrapping the same function also exists at `src/inngest/ingest.ts` for a durable path.)
 
 ```
-upload (uploadthing) → Inngest ingest job
-  → parse:        LlamaParse (LLAMA_CLOUD_API_KEY) with unpdf fallback on error
-  → chunk:        structure-aware chunking (src/lib/rag/chunk.ts), page-aware
-  → contextualize: per-chunk contextual prefix (doc-aware) for better recall
-  → embed:        text-embedding-3-large @ 1536 dims (src/lib/rag/embed.ts)
-  → persist:      Postgres `Chunk` rows (content + contextual + page/section)
-  → index:        Pinecone upsert, namespace = `user:<userId>`, metadata {documentId, page}
-  → finalize:     Document.status = READY
+upload → ingestDocumentById
+  → fetch:    pull the object from S3
+  → parse:    unpdf fast text extraction; LlamaParse OCR fallback only for scanned/image PDFs (LLAMA_CLOUD_API_KEY)
+  → chunk:    structure-aware, page-aware chunking (src/lib/rag/chunk.ts)
+  → embed:    text-embedding-3-large @ 1024 dims via Matryoshka (src/lib/rag/embed.ts)
+  → persist:  Postgres `Chunk` rows (content + page/section)
+  → index:    Pinecone upsert, namespace = `user:<userId>`, metadata {documentId, page}
+  → finalize: Document.status = READY
 ```
 
 Postgres holds the canonical chunk text (and a generated `tsvector` FTS column with a GIN index); Pinecone holds the dense vectors. Document status is surfaced live in the UI.
@@ -43,11 +43,11 @@ history-aware rewrite (gpt-4o-mini)         → standalone query
   → sparse search: Postgres full-text search over Chunk.content_fts
   → reciprocal rank fusion (RRF, k=60) of the two candidate lists
   → hydrate fused ids → chunk text from Postgres
-  → Cohere rerank (COHERE_API_KEY), top N = 6
+  → Cohere rerank (COHERE_API_KEY), top N = 6 — falls back to fusion order if unset
   → confidence gate (threshold 0.2): below → weakContext flag set
 ```
 
-A weak-context result tells the model to prefer "the documents don't cover this" over guessing.
+Each arm is isolated: if the dense (vector) arm fails — a missing index, an embedding hiccup, a quota error — retrieval degrades to sparse (lexical) search instead of returning nothing. A weak-context result tells the model to prefer "the documents don't cover this" over guessing.
 
 ### Generation (`src/app/api/pdfchat/route.ts`)
 
@@ -100,20 +100,22 @@ Copy `.env.example` to `.env` and fill these in. The validated schema lives in `
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | PostgreSQL connection string (Prisma). |
+| `DATABASE_URL` | yes | PostgreSQL connection string (Prisma, pooled). |
+| `DIRECT_URL` | migrations | Direct (unpooled) PostgreSQL URL for `prisma migrate`. On Neon, use the non-`-pooler` host. |
 | `AUTH_SECRET` | prod | NextAuth session/JWT secret. Generate with `npx auth secret`. Optional in dev. |
-| `AUTH_DISCORD_ID` | yes | Discord OAuth client ID for NextAuth. |
-| `AUTH_DISCORD_SECRET` | yes | Discord OAuth client secret for NextAuth. |
-| `OPENAI_API_KEY` | yes | Embeddings (`text-embedding-3-large`), query rewrite + generation (`gpt-4o-mini`). |
-| `PINECONE_API_KEY` | yes | Pinecone vector store access. |
-| `PINECONE_INDEX` | yes | Pinecone index name (defaults to `chat-pdf-v2`). Must be a **1536-dim, cosine** index. |
-| `LLAMA_CLOUD_API_KEY` | yes | LlamaParse PDF parsing (falls back to `unpdf` if missing/erroring). |
-| `COHERE_API_KEY` | yes | Cohere reranker in the retrieval pipeline. |
-| `INNGEST_EVENT_KEY` | yes | Inngest event ingestion key for the durable ingest job. |
-| `INNGEST_SIGNING_KEY` | yes | Inngest request-signing key. |
-| `UPLOADTHING_TOKEN` | yes | uploadthing file uploads. Read at runtime by the uploadthing SDK (not in the validated schema). |
+| `OPENAI_API_KEY` | yes | Embeddings (`text-embedding-3-large` @ 1024) + query rewrite/generation/judge (`gpt-4o-mini`). |
+| `PINECONE_API_KEY` | yes | Pinecone access. Must be the account/project that **owns the index holding your vectors**. |
+| `PINECONE_INDEX` | no | Index name; defaults to `chat-pdf-v2`. Index must be **1024-dim, cosine**. |
+| `S3_BUCKET_NAME` | yes | S3 bucket for uploaded PDFs (stored + served via presigned URLs). |
+| `AWS_REGION` | yes | Region of the S3 bucket. |
+| `AWS_ACCESS_KEY_ID` | yes* | S3 access key. *Optional if the default AWS credential chain is available (`AWS_PROFILE` / IAM role). |
+| `AWS_SECRET_ACCESS_KEY` | yes* | S3 secret key. See above. |
+| `COHERE_API_KEY` | no | Cohere reranker; retrieval falls back to fusion order if unset. |
+| `LLAMA_CLOUD_API_KEY` | no | LlamaParse OCR for scanned PDFs; `unpdf` handles text-layer PDFs without it. |
+| `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` | no | Only for the optional Inngest durable-ingest path (`src/inngest`). |
+| `AUTH_DISCORD_ID` / `AUTH_DISCORD_SECRET` | no | Legacy Discord OAuth; the app signs in with email/password. |
 
-> The RAG keys are typed `optional()` in the schema so the app builds without them, but PDF chat will not function until they are set.
+> The RAG/storage keys are typed `optional()` in the schema so the app builds without them, but PDF chat and readiness will not function until `OPENAI_API_KEY`, `PINECONE_API_KEY`, and the S3 vars are set. **`PINECONE_API_KEY` and `PINECONE_INDEX` must resolve to the index that actually holds your embeddings** — a valid-but-wrong Pinecone account returns zero results (retrieval silently finds nothing).
 
 ## Setup
 
@@ -126,27 +128,27 @@ npm install
 cp .env.example .env        # fill in the variables above
 ```
 
-1. **Create the Pinecone index** named to match `PINECONE_INDEX` with **dimension 1536** and **cosine** metric.
+1. **Create the Pinecone index** named to match `PINECONE_INDEX` (default `chat-pdf-v2`) with **dimension 1024** and **cosine** metric. The dimension must match the embedder (`text-embedding-3-large` @ 1024); a mismatched index silently returns no results.
 2. **Apply migrations:**
    ```bash
    npx prisma migrate deploy
    ```
-3. **Run the Inngest dev server** (durable ingest) in one terminal:
-   ```bash
-   npx inngest-cli@latest dev
-   ```
-   It auto-discovers the app at `/api/inngest`.
-4. **Run the app** in another terminal:
+3. **Run the app:**
    ```bash
    npm run dev
    ```
 
-Open the app, sign in with Discord, create a PDF chat session, and upload a document. Ingestion progress is shown live; once the document is READY you can ask grounded questions.
+Open the app, sign in (email/password, or the demo login), create a PDF chat session, and upload a document. Ingestion runs inline and status is shown live; once the document is READY you can ask grounded questions.
 
-Optionally, seed the pre-loaded CDSCO readiness demo (needs the app env + the readiness migration applied):
+> **Deploying?** Set the same env vars in your host (e.g. Vercel → Settings → Environment Variables → **Production**), then trigger a **fresh** deploy — env changes don't apply to an already-built deployment. `PINECONE_API_KEY` and `OPENAI_API_KEY` must point at the account/project that actually holds your vectors, or retrieval returns nothing.
+
+### Readiness demo
+
+Seed the pre-loaded CDSCO readiness package (needs the app env + the readiness migration applied):
 
 ```bash
-npm run seed:readiness      # prints demo credentials + the /pdfchat/<sessionId> to open
+npm run seed:readiness      # builds real PDFs, ingests them, prints demo credentials + the /pdfchat/<sessionId> to open
+npm run verify:readiness    # runs the real coordinator offline and prints the score, per-category breakdown, and every gap's citation
 ```
 
 ## Testing & evaluation
@@ -160,4 +162,4 @@ The eval harness (`eval/`) scores retrieval against a golden set. A live baselin
 
 ## Tech stack
 
-Next.js 15 (App Router), TypeScript, Prisma 6 + PostgreSQL, NextAuth (Discord), Inngest (durable ingestion), Pinecone (dense vectors), Postgres FTS (sparse), OpenAI (`text-embedding-3-large` + `gpt-4o-mini`), Cohere (rerank), LlamaParse + unpdf (parsing), LangGraph (readiness coordinator), Vercel AI SDK (streaming), Recharts (dashboard), uploadthing, Tailwind, Radix UI.
+Next.js 15 (App Router), TypeScript, Prisma 6 + PostgreSQL, NextAuth (email/password Credentials), S3 (PDF storage), Pinecone (dense vectors), Postgres FTS (sparse), OpenAI (`text-embedding-3-large` @ 1024 + `gpt-4o-mini`), Cohere (rerank), unpdf + LlamaParse (parsing), LangGraph (readiness coordinator), Vercel AI SDK (streaming), Recharts (dashboard), Tailwind, Radix UI.

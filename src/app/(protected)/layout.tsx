@@ -25,18 +25,20 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
               {data?.user?.name ?? "User"}
             </span>
           </h1>
-          <Avatar className="border border-border">
-            <AvatarImage src={data?.user?.image ?? ""} />
-            <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
-              {(data?.user?.name ?? "User")
-                .split(" ")
-                .map((w) => w[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          {/* <Logout /> */}
+          <div className="flex items-center gap-3">
+            <Avatar className="border border-border">
+              <AvatarImage src={data?.user?.image ?? ""} />
+              <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
+                {(data?.user?.name ?? "User")
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <Logout />
+          </div>
         </div>
         <div className="mt-2 min-h-[calc(100dvh-7rem)] w-full rounded-lg border border-border p-2">
           {children}

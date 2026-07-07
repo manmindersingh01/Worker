@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   });
   if (existing >= MAX_PDFS_PER_USER || files.length > MAX_PDFS_PER_USER - existing) {
     return NextResponse.json(
-      { error: "PDF_LIMIT", message: `You can upload at most ${MAX_PDFS_PER_USER} PDF.` },
+      { error: "PDF_LIMIT", message: `You can upload at most ${MAX_PDFS_PER_USER} PDFs.` },
       { status: 403 },
     );
   }

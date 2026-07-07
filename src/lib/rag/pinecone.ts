@@ -17,15 +17,23 @@ let pineconeSingleton: Pinecone | undefined;
 let indexSingleton: IndexLike | undefined;
 let cachedIndexName: string | undefined;
 
-function loadEnv() {
+type PineconeEnv = {
+  PINECONE_API_KEY?: string;
+  PINECONE_INDEX: string;
+};
+
+function loadEnv(): PineconeEnv {
   // require lazily so importing this module does not trigger env validation
   // (e.g. in tests that inject a fake index and never touch the real client).
-
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require("~/server/env").env as {
-    PINECONE_API_KEY?: string;
-    PINECONE_INDEX: string;
-  };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("~/server/env").env as PineconeEnv;
+  } catch {
+    // No CommonJS require in an ESM/tsx context (e.g. the readiness demo seed).
+    // The values are already loaded onto process.env, so read them directly.
+    const e = process.env as { PINECONE_API_KEY?: string; PINECONE_INDEX?: string };
+    return { PINECONE_API_KEY: e.PINECONE_API_KEY, PINECONE_INDEX: e.PINECONE_INDEX ?? "chat-pdf-v2" };
+  }
 }
 
 export function getPinecone(): Pinecone {

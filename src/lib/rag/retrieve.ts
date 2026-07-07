@@ -92,7 +92,22 @@ export async function retrieve(
   const rewritten = (await rewriteFn(input.history, input.query)).trim();
   const q = rewritten || input.query;
 
-  const [dense, sparse] = await Promise.all([denseFn(q), sparseFn(q)]);
+  // Retrieve from both arms independently: a failure on one arm (e.g. the
+  // vector store is unreachable) must not discard the other arm's hits.
+  const [dense, sparse] = await Promise.all([
+    Promise.resolve()
+      .then(() => denseFn(q))
+      .catch((e) => {
+        console.warn("[retrieve] dense arm failed - using sparse only", e);
+        return [] as Candidate[];
+      }),
+    Promise.resolve()
+      .then(() => sparseFn(q))
+      .catch((e) => {
+        console.warn("[retrieve] sparse arm failed - using dense only", e);
+        return [] as Candidate[];
+      }),
+  ]);
 
   const fused = reciprocalRankFusion(
     [orderedIds(dense), orderedIds(sparse)],

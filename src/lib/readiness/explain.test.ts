@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { rankGaps, deterministicSummary, explainGaps } from "./explain";
+import {
+  rankGaps,
+  deterministicSummary,
+  explainGaps,
+  stripFixOrdinal,
+} from "./explain";
 import { scoreReadiness } from "./score";
 import type { Blueprint, ItemAssessment, ItemStatus } from "./types";
 
@@ -82,6 +87,21 @@ describe("deterministicSummary", () => {
     expect(s.headline.toLowerCase()).toContain("trial insurance");
     expect(s.topFixes).toContain("Add the insurance policy.");
     expect(s.topFixes.length).toBeLessThanOrEqual(3);
+  });
+
+  it("strips list ordinals/bullets a model may bake into a fix", () => {
+    expect(stripFixOrdinal("1. Secure the insurance policy")).toBe(
+      "Secure the insurance policy",
+    );
+    expect(stripFixOrdinal("2) Obtain CTRI registration")).toBe(
+      "Obtain CTRI registration",
+    );
+    expect(stripFixOrdinal("- Renew GCP training")).toBe("Renew GCP training");
+    expect(stripFixOrdinal("• Add the AV consent recording")).toBe(
+      "Add the AV consent recording",
+    );
+    // A bare sentence is left untouched (no false stripping of "3M" etc.).
+    expect(stripFixOrdinal("Register with CDSCO")).toBe("Register with CDSCO");
   });
 
   it("only names genuinely missing items after 'missing'", () => {
