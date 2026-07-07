@@ -22,7 +22,7 @@ type PresignResponse = {
   uploads: { key: string; name: string; url: string }[];
 };
 
-const MAX_FILES = 1;
+const MAX_FILES = 10;
 const MAX_SIZE = 32 * 1024 * 1024; // 32 MB
 
 /** Per-file progress surfaced while the browser streams bytes to S3. */
@@ -99,7 +99,10 @@ const FileUploadDropZone = ({
         error.response?.status === 403 &&
         (error.response.data as { error?: string })?.error === "PDF_LIMIT"
       ) {
-        toast.error("You can upload only 1 PDF on the demo.");
+        toast.error(
+          (error.response.data as { message?: string })?.message ??
+            "You've reached your PDF upload limit.",
+        );
         return;
       }
       toast.error(
@@ -197,7 +200,7 @@ const FileUploadDropZone = ({
                 : "Drop PDFs here, or click to browse"}
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            PDF only · up to 32MB · max {MAX_FILES} file
+            PDF only · up to 32MB · max {MAX_FILES} files
           </p>
         </div>
       </div>
