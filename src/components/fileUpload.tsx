@@ -237,7 +237,7 @@ const FileUploadDropZone = ({
       <div className="mt-5 grid grid-cols-3 gap-2">
         {[
           { icon: FileText, label: "PDF only" },
-          { icon: UploadCloud, label: "1 file" },
+          { icon: UploadCloud, label: `${MAX_FILES} files` },
           { icon: ShieldCheck, label: "32MB max" },
         ].map(({ icon: Icon, label }) => (
           <div
