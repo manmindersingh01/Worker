@@ -1,55 +1,44 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-"use client";
+import React from "react";
+import { redirect } from "next/navigation";
+import { auth } from "~/server/auth";
+import { db } from "~/server/db";
+import UploadWorkspace, { type RecentChat } from "./uploadClient";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import FileUploadDropZone from "~/components/fileUpload";
+/**
+ * Post-login landing page: upload new PDFs, plus direct links back into the
+ * user's existing chat sessions (fetched here, server-side).
+ */
+const PdfChatPage = async () => {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) redirect("/signin");
 
-const PdfChat = () => {
-  const [loading, setLoading] = useState(false);
+  const sessions = await db.pdfChatSession.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+      _count: { select: { documents: true } },
+    },
+  });
 
-  return (
-    <div className="bg-paper relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-12">
-      {/* Atmosphere: layered violet/cyan blooms */}
-      <div className="aurora pointer-events-none absolute inset-0 opacity-50" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[hsl(var(--grad-from)/0.12)] blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-48 -left-32 h-[30rem] w-[30rem] rounded-full bg-[hsl(var(--grad-to)/0.1)] blur-3xl"
-      />
+  // Format dates here with a fixed locale so SSR and client hydration match.
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const recentChats: RecentChat[] = sessions.map((s) => ({
+    id: s.id,
+    title: s.title ?? "Untitled chat",
+    documentCount: s._count.documents,
+    updatedLabel: fmt.format(s.updatedAt),
+  }));
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-xl"
-      >
-        <div className="mb-7 text-center">
-          <span className="border-gradient relative mb-4 inline-flex items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground backdrop-blur">
-            <Sparkles className="h-3 w-3 text-[hsl(var(--accent))]" aria-hidden />
-            Document intelligence
-          </span>
-          <h1 className="font-display text-balance text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-            Bring your <span className="text-gradient">documents</span> into the
-            conversation
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-balance text-sm text-muted-foreground sm:text-base">
-            Upload your PDFs and start an intelligent, cited conversation about
-            their contents. We index every page as you go.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-paper-lg backdrop-blur-sm sm:p-6">
-          <FileUploadDropZone setLoading={setLoading} />
-        </div>
-      </motion.div>
-    </div>
-  );
+  return <UploadWorkspace recentChats={recentChats} />;
 };
 
-export default PdfChat;
+export default PdfChatPage;
